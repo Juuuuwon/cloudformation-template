@@ -1,0 +1,38 @@
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  
+  RouteTableIds: # for gateway type
+    Type: CommaDelimitedList
+  
+  SubnetIds: # for interface type
+    Type: List<AWS::EC2::Subnet::Id>
+
+  SecurityGroupIds: # for interface type
+    Type: List<AWS::EC2::SecurityGroup::Id>
+
+Resources:
+  #
+  # VPC Endpoint - Gateway Type
+  #
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      RouteTableIds: !Ref RouteTableIds
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcEndpointType: Gateway # Gateway, GatewayLoadBalancer, Interface
+      VpcId: !Ref VpcId
+
+  #
+  # VPC Endpoint - Interface Type
+  #
+  S3InterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+      PrivateDnsEnabled: false # s3 can not support, but its recommended other service.
+      SubnetIds:  !Ref SubnetIds
+      SecurityGroupIds: !Ref SecurityGroupIds
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcEndpointType: Interface # Gateway, GatewayLoadBalancer, Interface
+      VpcId: !Ref VpcId

@@ -1,0 +1,13 @@
+
+Resources:
+  #
+  # CodeCommit - Repository
+  #
+  Repository:
+    Type: AWS::CodeCommit::Repository
+    Properties: 
+      RepositoryDescription: 'This is repository of codecommit for source code'
+      RepositoryName: hmoon-app
+      Tags: 
+        - Key: key01
+          Value: value01

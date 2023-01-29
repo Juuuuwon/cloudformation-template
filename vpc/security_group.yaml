@@ -1,0 +1,144 @@
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "The VPC id associated security group"
+
+  Project:
+    Type: String
+    Description: "The project name for provisioned this resources"
+    Default: Unicorn.Rental
+
+  Owner:
+    Type: String
+    Description: "The team name for owned this resources"
+    Default: TeamKorea
+
+  NamePrefix:
+    Type: String
+    Description: "The prefix of resource's Name tag"
+    Default: Unicorn
+
+  ApplicationPort:
+    Type: Number
+    Description: "Port number for the application"
+    Default: 80
+
+Resources:
+  #
+  # ALB security group
+  #
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "The security group for ALB"
+      GroupName: !Sub '${NamePrefix}-alb-sg'
+      VpcId: !Ref VpcId
+      Tags: 
+        - Key: Name
+          Value: !Sub '${NamePrefix}-alb-sg'
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  ALBSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      Description: "allow all traffic from anywhere"
+      GroupId: !Ref ALBSecurityGroup
+      # SourceSecurityGroupId: !Ref ALBSecurityGroup
+      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: 80
+      ToPort: 80
+
+  ALBSecurityGroupEgress1:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties: 
+      Description: "allow all traffic to anywhere"
+      GroupId: !Ref ALBSecurityGroup
+      # DestinationSecurityGroupId: !Ref ALBSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+      # FromPort: 443
+      # ToPort: 443
+  #
+  # Application security group
+  #
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "The security group for application"
+      GroupName: !Sub '${NamePrefix}-app-sg'
+      VpcId: !Ref VpcId
+      Tags: 
+        - Key: Name
+          Value: !Sub '${NamePrefix}-app-sg'
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  AppSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      Description: "allow all traffic from ALB"
+      GroupId: !Ref AppSecurityGroup
+      SourceSecurityGroupId: !Ref ALBSecurityGroup
+      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+      # CidrIp: 0.0.0.0/0
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: !Ref ApplicationPort
+      ToPort: !Ref ApplicationPort
+
+  AppSecurityGroupEgress1:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties: 
+      Description: "allow all traffic to anywhere"
+      GroupId: !Ref AppSecurityGroup
+      # DestinationSecurityGroupId: !Ref AppSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+      # FromPort: 443
+      # ToPort: 443
+  #
+  # RDS security group
+  #
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: "The security group for RDS"
+      GroupName: !Sub '${NamePrefix}-rds-sg'
+      VpcId: !Ref VpcId
+      Tags: 
+        - Key: Name
+          Value: !Sub '${NamePrefix}-rds-sg'
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  RDSSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties: 
+      Description: "allow all traffic from application"
+      GroupId: !Ref RDSSecurityGroup
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+      # CidrIp: 0.0.0.0/0
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: 3306
+      ToPort: 3306
+
+  RDSSecurityGroupEgress1:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties: 
+      Description: "allow all traffic to anywhere"
+      GroupId: !Ref RDSSecurityGroup
+      # DestinationSecurityGroupId: !Ref AppSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+      # FromPort: 443
+      # ToPort: 443
