@@ -4,9 +4,41 @@ Parameters:
     Type: String
     Description: "The name for the application load balancer"
   
+  ALBScheme:
+    Type: String
+    Description: "Scheme of the ALB"
+    AllowedValues:
+      - "internal"
+      - "internet-facing"
+  
+  ALBAccessLogEnable:
+    Type: String
+    Description: "Whether enable access log or not"
+    AllowedValues:
+      - "true"
+      - "false"
+    Default: "false"
+
+  ALBAccessLogBucket:
+    Type: String
+    Description: "Bucket name where logs are stored. Bucket policy must allow putObject for logging"
+    Default: "bucket-name"
+
   TargetGroupName:
     Type: String
     Description: "The name for the target group"
+
+  TargetType:
+    Type: String
+    Description: "The target group type. Instance or IP"
+    AllowedValues:
+      - "instance"
+      - "ip"
+
+  TargetPort:
+    Type: String
+    Description: "The port of the target"
+    Default: 80
 
   HealthCheckPath:
     Type: String
@@ -34,8 +66,36 @@ Parameters:
     Type: String
     Description: "The team name for owned this resources"
     Default: TeamKorea
-  
 
+Conditions:
+  EnableALBAccessLog:
+    !Equals [!Ref ALBAccessLogEnable, "true"]
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label: 
+          default: "VPC tag configuration"
+        Parameters:
+          - Project
+          - Owner
+      - Label:
+          default: "ALB Configuration"
+        Parameters:
+          - ALBName
+          - ALBScheme
+          - TargetGroupName
+          - TargetType
+          - TargetPort
+          - HealthCheckPath
+          - ALBAccessLogEnable
+          - ALBAccessLogBucket
+      - Label:
+          default: "ALB Network Configuration"
+        Parameters:
+          - VpcId
+          - SubnetIds
+          - SecurityGroupIds
 Resources:
   #
   # ELBv2 - Target Group
@@ -46,14 +106,14 @@ Resources:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 15
       HealthCheckPath: !Ref HealthCheckPath
-      HealthCheckPort: 80
+      HealthCheckPort: !Ref TargetPort
       HealthCheckProtocol: HTTP # HTTP , HTTPS
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
       IpAddressType: ipv4 # ipv4 , ipv6
       Name: !Ref TargetGroupName
-      Port: 80
+      Port: !Ref TargetPort
       Protocol: HTTP # HTTP , HTTPS
       ProtocolVersion: HTTP1 # GRPC , HTTP1 , HTTP2
       Tags: 
@@ -64,7 +124,7 @@ Resources:
       TargetGroupAttributes: 
         - Key: deregistration_delay.timeout_seconds
           Value: 30
-      TargetType: instance # instance , ip , lambda , alb
+      TargetType: !Ref TargetType # instance , ip , lambda , alb
       VpcId: !Ref VpcId
 
   #
@@ -75,11 +135,18 @@ Resources:
     Properties: 
       Name: !Ref ALBName
       Type: application # application , network , gateway
-      Scheme: internet-facing # internal , internet-facing
+      Scheme: !Ref ALBScheme # internal , internet-facing
       IpAddressType: ipv4 # ipv4 , ipv6
       LoadBalancerAttributes: 
         - Key: routing.http2.enabled
           Value: true
+        - Key: access_logs.s3.enabled
+          Value: !Ref ALBAccessLogEnable
+        - "Fn::If":
+          - EnableALBAccessLog
+          - Key: access_logs.s3.bucket
+            Value: !Ref ALBAccessLogBucket
+          - !Ref "AWS::NoValue"
       SecurityGroups: !Ref SecurityGroupIds
       Subnets: !Ref SubnetIds
       Tags: 
