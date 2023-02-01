@@ -93,6 +93,14 @@ Resources:
         # - mysite.example.com
         # - "*.yoursite.example.com"
         DefaultCacheBehavior:
+          AllowedMethods:
+            - "GET"
+            - "HEAD"
+            - "OPTIONS"
+            - "PUT"
+            - "PATCH"
+            - "POST"
+            - "DELETE"
           TargetOriginId: CustomOrigin
           SmoothStreaming: 'false'
           CachePolicyId: !GetAtt CachePolicy.Id
@@ -104,7 +112,7 @@ Resources:
           # TrustedSigners:
           # - 1234567890EX
           # - 1234567891EX
-          ViewerProtocolPolicy: allow-all
+          ViewerProtocolPolicy: redirect-to-https
         # CustomErrorResponses:
         # - ErrorCode: '404'
         #   ResponsePagePath: "/error-pages/404.html"
