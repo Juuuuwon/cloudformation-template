@@ -11,7 +11,16 @@ Parameters:
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The security group ids for attached your task"
-  
+
+  ApplicationPort:
+    Type: Number
+    Description: "The port number of the task application"
+    Default: 80
+
+  ImageRepository:
+    Type: String
+    Description: "Image Repository URI of the task"
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "The subnet ids for locate your task"
@@ -84,6 +93,17 @@ Resources:
               Service:
                 - ecs-tasks.amazonaws.com
       # Policies: 
+      # - PolicyName: allow-ecs-exec
+      #   PolicyDocument:
+      #     Version: "2012-10-17"
+      #     Statement:
+      #       - Effect: Allow
+      #         Action:
+      #           - "ssmmessages:CreateControlChannel"
+      #           - "ssmmessages:CreateDataChannel"
+      #           - "ssmmessages:OpenControlChannel"
+      #           - "ssmmessages:OpenDataChannel"
+      #         Resource: '*'
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -116,6 +136,7 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
     Properties: 
       Family: !Ref TaskName
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
@@ -138,21 +159,21 @@ Resources:
       ContainerDefinitions: 
         - 
           Name: webapp
-          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/stress:20220927111338'
+          Image: !Ref ImageRepository
           Cpu: 512
           Memory: 1024
           MemoryReservation: 1024
           Essential: true
           Privileged: false
           PortMappings: 
-            - ContainerPort: 5000
-              HostPort: 5000
+            - ContainerPort: !Ref ApplicationPort
+              # HostPort: 5000
               Protocol: tcp # tcp | udp
           HealthCheck: 
-            Command: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5000/healthcheck || exit 1" ]
+            Command: [ "CMD-SHELL", !Sub "wget --no-verbose --tries=1 --spider http://localhost:${ApplicationPort}/health || exit 1" ]
             Interval: 15
             Retries: 3
-            StartPeriod: 60
+            StartPeriod: 30
             Timeout: 5
           LogConfiguration: 
             LogDriver: awslogs
@@ -212,7 +233,7 @@ Resources:
       # LaunchType: FARGATE # EC2 | EXTERNAL | FARGATE
       LoadBalancers: 
         - ContainerName: webapp
-          ContainerPort: 5000
+          ContainerPort: !Ref ApplicationPort
           # LoadBalancerName: !Ref LoadBalancerName
           TargetGroupArn: !Ref TargetGroupArn
       # HealthCheckGracePeriodSeconds: 60
