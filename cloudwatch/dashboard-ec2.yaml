@@ -31,7 +31,7 @@ Resources:
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "title": "${ASGName}-memory",
                 "period": 60,
                 "stat": "Average"
@@ -49,7 +49,7 @@ Resources:
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "title": "${ASGName}-cpu",
                 "period": 60,
                 "stat": "Average"
@@ -68,7 +68,7 @@ Resources:
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "title": "${ASGName}-network",
                 "period": 60,
                 "stat": "Average"
@@ -87,7 +87,7 @@ Resources:
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "title": "${ASGName}-disk",
                 "period": 60,
                 "stat": "Average"
@@ -105,7 +105,7 @@ Resources:
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "title": "ResponseTime",
                 "period": 60,
                 "stat": "Average"
@@ -123,7 +123,7 @@ Resources:
                   [ ".", "HTTPCode_ELB_5XX_Count", ".", "${ALBName}" ]
                 ],
                 "period": 60,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "stat": "Sum",
                 "title": "HTTP 5XXs",
                 "yAxis": {
@@ -147,7 +147,7 @@ Resources:
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "stat": "Sum",
                 "period": 60
               }
@@ -160,14 +160,14 @@ Resources:
               "height": 6,
               "properties": {
                 "metrics": [
-                  [ { "expression": "(m1+m2)/m3*100", "label": "Error rate", "id": "e1", "region": "{AWS::Region}" } ],
+                  [ { "expression": "(m1+m2)/m3*100", "label": "Error rate", "id": "e1", "region": "${AWS::Region}" } ],
                   [ "AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", "${ALBName}", { "id": "m1", "visible": false } ],
                   [ ".", "HTTPCode_ELB_5XX_Count", ".", ".", { "id": "m2", "visible": false } ],
-                  [ ".", "RequestCount", ".", ".", { "id": "m3", "visible": false } ]
+                  [ ".", "RequestCount", ".", ".", { "id": "m3", "visible": false, "stat": "Sum" } ]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
-                "region": "{AWS::Region}",
+                "region": "${AWS::Region}",
                 "stat": "Average",
                 "period": 60,
                 "title": "Error rate"
