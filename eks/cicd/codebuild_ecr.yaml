@@ -215,7 +215,7 @@ Resources:
       Source: 
         Type: CODECOMMIT
         Location: !Sub 'https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${CodeCommitRepositoryName}'
-        BuildSpec: buildspec.yml
+        BuildSpec: buildspec.yaml
       SourceVersion: !Sub 'refs/heads/${CodeCommitBranchName}'
       # Tags: 
       #   - Key: key01
