@@ -14,7 +14,39 @@ Parameters:
     Type: String
     Description: "The prefix of resource's Name tag"
     Default: Unicorn
+  
+  EnableFlowLog:
+    Type: String
+    Description: "Enable VPC flow log. Logs will be delivered to cloudwatch log group, /aws/flow-log/<VPC_NAME>"
+    AllowedValues:
+      - "true"
+      - "false"
 
+  AZCount:
+    Type: Number
+    Description: "How many AZs to deploy subnet"
+    AllowedValues:
+      - 2
+      - 3
+
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "VPC Configuration"
+        Parameters:
+          - NamePrefix
+          - EnableFlowLog
+          - AZCount
+          - Owner
+          - Project
+
+Conditions:
+  CreateFlowLog:
+    !Equals [!Ref EnableFlowLog, "true"]
+  CraeteThirdSubnet:
+    !Equals [!Ref AZCount, 3]
 Resources:
   #
   # VPC
@@ -32,6 +64,47 @@ Resources:
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
+
+  #
+  # VPC Flow Log
+  #
+  FlowLog:
+    Condition: CreateFlowLog
+    Type: AWS::EC2::FlowLog
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
+      LogGroupName: !Sub "/aws/flow-log/${VPC}"
+      ResourceId: !Ref VPC
+      ResourceType: VPC
+      TrafficType: ALL
+  
+  FlowLogRole:
+    Condition: CreateFlowLog
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: vpc-flow-log-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'sts:AssumeRole'
+            Principal:
+              Service:
+                - vpc-flow-logs.amazonaws.com
+      Policies:
+        - PolicyName: cloudwatch-logs-access
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                Resource: "*"
 
   #
   # Internet Gateway
@@ -87,6 +160,7 @@ Resources:
           Value: !Ref Owner
 
   PublicSubnetC:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -135,6 +209,7 @@ Resources:
           Value: !Ref Owner
 
   PrivateSubnetC:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -183,6 +258,7 @@ Resources:
           Value: !Ref Owner
 
   DataSubnetC:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
@@ -253,6 +329,7 @@ Resources:
           Value: !Ref Owner
 
   NatGatewayCEIP:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
     Properties:
@@ -266,6 +343,7 @@ Resources:
           Value: !Ref Owner
 
   NatGatewayC:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::NatGateway
     Properties:
       AllocationId: !GetAtt NatGatewayCEIP.AllocationId
@@ -314,6 +392,7 @@ Resources:
       SubnetId: !Ref PublicSubnetB
 
   PublicSubnetCRouteTableAssociation:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PublicRouteTable
@@ -373,6 +452,7 @@ Resources:
       SubnetId: !Ref PrivateSubnetB
 
   PrivateRouteTableC:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
@@ -385,6 +465,7 @@ Resources:
           Value: !Ref Owner
 
   DefaultPrivateRouteC:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::Route
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
@@ -392,6 +473,7 @@ Resources:
       NatGatewayId: !Ref NatGatewayC
 
   PrivateSubnetCRouteTableAssociation:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref PrivateRouteTableC
@@ -425,6 +507,7 @@ Resources:
       SubnetId: !Ref DataSubnetB
   
   DataSubnetCRouteTableAssociation:
+    Condition: CraeteThirdSubnet
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       RouteTableId: !Ref DataRouteTable
