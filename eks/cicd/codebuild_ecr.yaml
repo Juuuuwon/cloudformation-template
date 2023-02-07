@@ -47,6 +47,32 @@ Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: "The vpc id for application load balancer"
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - Label:
+          default: "Build Project Configuration"
+        Parameters:
+          - ProjectName
+          - ArtifactBucketName
+          - CodeCommitRepositoryName
+          - CodeCommitBranchName
+      - Label:
+          default: "Build Environments"
+        Parameters:
+          - ECRRepositoryName
+          - EKSClusterName
+          - K8Snamespace
+          - K8Sdeployment
+          - K8Scontainer
+      - Label:
+          default: "Build Network Configuration"
+        Parameters:
+          - VpcId
+          - SubnetIds
+          - SecurityGroupIds
+          
 Resources:
   #
   # IAM - Role
