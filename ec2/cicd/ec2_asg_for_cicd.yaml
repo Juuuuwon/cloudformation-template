@@ -265,7 +265,7 @@ Resources:
       MinSize: '2'
       MaxSize: '20'
       HealthCheckGracePeriod: 60
-      HealthCheckType: EC2 # EC2 , ELB
+      HealthCheckType: ELB # EC2 , ELB
       LaunchTemplate: 
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber # DefaultVersionNumber , LatestVersionNumber
