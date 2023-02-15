@@ -1,4 +1,8 @@
 
+Parameters:
+  RepositoryName:
+    Type: String
+
 Resources:
   #
   # CodeCommit - Repository
@@ -9,7 +13,7 @@ Resources:
       # Code: 
       #   Code
       RepositoryDescription: 'This is repository of codecommit for source code'
-      RepositoryName: foo-webapp
+      RepositoryName: !Ref RepositoryName
       # Triggers: 
       #   - RepositoryTrigger
       Tags: 
