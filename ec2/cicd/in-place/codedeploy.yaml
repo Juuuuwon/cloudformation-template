@@ -1,20 +1,18 @@
-
 Parameters:
-  
   ApplicationName:
-    Description: 'The application name of codedeploy'
+    Description: "The application name of codedeploy"
     Type: String
 
   DeploymentGroupName:
-    Description: 'The name of codedeploy deployment group'
+    Description: "The name of codedeploy deployment group"
     Type: String
 
   AutoScalingGroup:
-    Description: 'The name of auto scaling group'
+    Description: "The name of auto scaling group"
     Type: String
 
   TargetGroupName:
-    Description: 'The name of target group'
+    Description: "The name of target group"
     Type: String
 
 Resources:
@@ -23,7 +21,7 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       # RoleName: example-ec2-role
       # Description: description
       AssumeRolePolicyDocument:
@@ -31,11 +29,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - codedeploy.amazonaws.com
-      # Policies: 
+      # Policies:
       #   -
       #     PolicyName: ecs
       #     PolicyDocument:
@@ -46,21 +44,21 @@ Resources:
       #             - 'logs:CreateLogStream'
       #             - 'logs:PutLogEvents'
       #           Resource: !GetAtt BuildProjectLogGroup.Arn
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-      Tags: 
+      Tags:
         - Key: key01
           Value: value01
-  
+
   #
   # CodeDeploy - Application
   #
   Application:
     Type: AWS::CodeDeploy::Application
-    Properties: 
+    Properties:
       ApplicationName: !Ref ApplicationName
       ComputePlatform: Server # ECS | Lambda | Server
-      Tags: 
+      Tags:
         - Key: key01
           Value: value01
 
@@ -69,10 +67,10 @@ Resources:
   #
   DeploymentConfig:
     Type: AWS::CodeDeploy::DeploymentConfig
-    Properties: 
+    Properties:
       ComputePlatform: Server # ECS | Lambda | Server
-      DeploymentConfigName: 'EC2-Rollout-50Percent'
-      MinimumHealthyHosts: 
+      DeploymentConfigName: "EC2-Rollout-50Percent"
+      MinimumHealthyHosts:
         Type: FLEET_PERCENT
         Value: 50
 
@@ -81,25 +79,24 @@ Resources:
   #
   DeploymentGroup:
     Type: AWS::CodeDeploy::DeploymentGroup
-    Properties: 
+    Properties:
       DeploymentGroupName: !Ref DeploymentGroupName
       ApplicationName: !Ref Application
       DeploymentConfigName: !Ref DeploymentConfig
-      DeploymentStyle: 
+      DeploymentStyle:
         DeploymentOption: WITH_TRAFFIC_CONTROL
         DeploymentType: IN_PLACE
-      AutoScalingGroups: 
+      AutoScalingGroups:
         - !Ref AutoScalingGroup
-      # Ec2TagFilters: 
+      # Ec2TagFilters:
       #   - EC2TagFilter
-      # Ec2TagSet: 
+      # Ec2TagSet:
       #   EC2TagSet
-      LoadBalancerInfo: 
-        TargetGroupInfoList: 
+      LoadBalancerInfo:
+        TargetGroupInfoList:
           - Name: !Ref TargetGroupName
       ServiceRoleArn: !GetAtt Role.Arn
-      # Tags: 
+      # Tags:
       #   - Tag
-      # TriggerConfigurations: 
+      # TriggerConfigurations:
       #   - TriggerConfig
-

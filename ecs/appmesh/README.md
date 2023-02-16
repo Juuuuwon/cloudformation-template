@@ -1,4 +1,3 @@
-
 ## 작업 순서 주의!!
 
 1. CloudMap
@@ -32,7 +31,6 @@
 AppMesh를 사용하면 Envoy Proxy 를 거쳐 통신하지만, Envoy Proxy 포트를 별도로 열어줄 필요가 없습니다.
 
 단지 **어플리케이션의 포트만 열어주면 됩니다.**
-
 
 ## Virtual Gateway Path 주의!!
 

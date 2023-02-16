@@ -1,4 +1,3 @@
-
 Parameters:
   RepositoryName:
     Type: String
@@ -9,13 +8,13 @@ Resources:
   #
   Repository:
     Type: AWS::CodeCommit::Repository
-    Properties: 
-      # Code: 
+    Properties:
+      # Code:
       #   Code
-      RepositoryDescription: 'This is repository of codecommit for source code'
+      RepositoryDescription: "This is repository of codecommit for source code"
       RepositoryName: !Ref RepositoryName
-      # Triggers: 
+      # Triggers:
       #   - RepositoryTrigger
-      Tags: 
+      Tags:
         - Key: key01
           Value: value01

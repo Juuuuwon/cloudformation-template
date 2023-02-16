@@ -15,7 +15,7 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       RoleName: example-lambda-role
       Description: description
       AssumeRolePolicyDocument:
@@ -23,11 +23,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - lambda.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -37,9 +37,9 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -50,14 +50,14 @@ Resources:
   #
   Function:
     Type: AWS::Lambda::Function
-    Properties: 
+    Properties:
       FunctionName: myFunction
       Description: "The lambda function with provisioned concurrency"
       Runtime: python3.9 # python3.9 , nodejs14.x  ...
       Architectures: # arm64 , x86_64
         - arm64
       PackageType: Zip # Image , Zip
-      Code: 
+      Code:
         # S3Bucket: String
         # S3Key: String
         # S3ObjectVersion: String
@@ -73,14 +73,14 @@ Resources:
       MemorySize: 512 # MB
       Timeout: 60 # seconds
       Role: !GetAtt Role.Arn
-      EphemeralStorage: 
+      EphemeralStorage:
         Size: 512 # MB
-      # Environment: 
-      #   Variables:  
+      # Environment:
+      #   Variables:
       #     key01: value01
-      # TracingConfig: 
+      # TracingConfig:
       #   Mode: Active # Active , PassThrough
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -91,11 +91,11 @@ Resources:
   #
   FunctionVersion:
     Type: AWS::Lambda::Version
-    Properties: 
+    Properties:
       # CodeSha256: String
       # Description: String
       FunctionName: !Ref Function
-      # ProvisionedConcurrencyConfig: 
+      # ProvisionedConcurrencyConfig:
       #   ProvisionedConcurrentExecutions: 1
 
   #
@@ -103,33 +103,33 @@ Resources:
   #
   FunctionAlias:
     Type: AWS::Lambda::Alias
-    Properties: 
+    Properties:
       Name: prod
       # Description: String
       FunctionName: !Ref Function
       FunctionVersion: !GetAtt FunctionVersion.Version
-      ProvisionedConcurrencyConfig: 
+      ProvisionedConcurrencyConfig:
         ProvisionedConcurrentExecutions: 1
-      # RoutingConfig: 
-      #   AdditionalVersionWeights: 
+      # RoutingConfig:
+      #   AdditionalVersionWeights:
       #     - FunctionVersion: String
       #       FunctionWeight: Double
-    
+
   #
   # Application Auto Scaling - ScalableTarget
   #
   ScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     DependsOn: FunctionAlias
-    Properties: 
+    Properties:
       MaxCapacity: 10
       MinCapacity: 1
       ServiceNamespace: lambda
       ScalableDimension: lambda:function:ProvisionedConcurrency
       ResourceId: function:myFunction:prod
       RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/lambda.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_LambdaConcurrency
-      # ScheduledActions: 
-      #   - ScalableTargetAction: 
+      # ScheduledActions:
+      #   - ScalableTargetAction:
       #       MaxCapacity: Integer
       #       MinCapacity: Integer
       #     Schedule: String
@@ -137,25 +137,25 @@ Resources:
       #     StartTime: Timestamp
       #     EndTime: Timestamp
       #     Timezone: String
-      # SuspendedState: 
+      # SuspendedState:
       #   SuspendedState
 
   #
   # Application Auto Scaling - Scaling Policy
-  #  
+  #
   ScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties: 
+    Properties:
       PolicyName: TargetTracking70Percent
       PolicyType: TargetTrackingScaling # StepScaling , TargetTrackingScaling
       ScalingTargetId: !Ref ScalableTarget
-      # StepScalingPolicyConfiguration: 
+      # StepScalingPolicyConfiguration:
       #   StepScalingPolicyConfiguration
-      TargetTrackingScalingPolicyConfiguration: 
-        # CustomizedMetricSpecification: 
+      TargetTrackingScalingPolicyConfiguration:
+        # CustomizedMetricSpecification:
         #   CustomizedMetricSpecification
         DisableScaleIn: false
-        PredefinedMetricSpecification: 
+        PredefinedMetricSpecification:
           PredefinedMetricType: LambdaProvisionedConcurrencyUtilization
           # ResourceLabel: String
         ScaleInCooldown: 60 # seconds

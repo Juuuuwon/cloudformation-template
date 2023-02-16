@@ -1,39 +1,38 @@
-
 Parameters:
   ProjectName:
-    Description: 'The project name of CodeBuild'
+    Description: "The project name of CodeBuild"
     Type: String
 
   ArtifactBucketName:
-    Description: 'The bucket name for artifacts'
+    Description: "The bucket name for artifacts"
     Type: String
 
   CodeCommitRepositoryName:
-    Description: 'The repository name of CodeCommit'
+    Description: "The repository name of CodeCommit"
     Type: String
 
   CodeCommitBranchName:
-    Description: 'The branch name of CodeCommit'
+    Description: "The branch name of CodeCommit"
     Type: String
 
   ECRRepositoryName:
-    Description: 'The repository name of ECR'
+    Description: "The repository name of ECR"
     Type: String
 
   EKSClusterName:
-    Description: 'The cluster name of EKS'
+    Description: "The cluster name of EKS"
     Type: String
-  
+
   K8Snamespace:
-    Description: 'The namespace name of k8s'
+    Description: "The namespace name of k8s"
     Type: String
-  
+
   K8Sdeployment:
-    Description: 'The deployment name of k8s'
+    Description: "The deployment name of k8s"
     Type: String
-  
+
   K8Scontainer:
-    Description: 'The container name of pod of the deployment'
+    Description: "The container name of pod of the deployment"
     Type: String
 
   SecurityGroupIds:
@@ -48,9 +47,9 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Description: "The vpc id for application load balancer"
 
-Metadata: 
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
       - Label:
           default: "Build Project Configuration"
         Parameters:
@@ -72,14 +71,14 @@ Metadata:
           - VpcId
           - SubnetIds
           - SecurityGroupIds
-          
+
 Resources:
   #
   # IAM - Role
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       # RoleName: example-ec2-role
       # Description: description
       AssumeRolePolicyDocument:
@@ -87,19 +86,19 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - codebuild.amazonaws.com
-      Policies: 
+      Policies:
         - PolicyName: cloudwatchLogs
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - 'logs:CreateLogStream'
-                  - 'logs:PutLogEvents'
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
                 Resource: !GetAtt BuildProjectLogGroup.Arn
         - PolicyName: s3
           PolicyDocument:
@@ -107,35 +106,35 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 's3:PutObject'
-                  - 's3:GetObject'
-                  - 's3:GetObjectVersion'
-                  - 's3:GetBucketAcl'
-                  - 's3:GetBucketLocation'
-                Resource: 
-                  - !Sub 'arn:aws:s3:::codepipeline-${AWS::Region}-*'
-                  - !Sub 'arn:aws:s3:::${ArtifactBucketName}/'
-                  - !Sub 'arn:aws:s3:::${ArtifactBucketName}/*'
+                  - "s3:PutObject"
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:GetBucketAcl"
+                  - "s3:GetBucketLocation"
+                Resource:
+                  - !Sub "arn:aws:s3:::codepipeline-${AWS::Region}-*"
+                  - !Sub "arn:aws:s3:::${ArtifactBucketName}/"
+                  - !Sub "arn:aws:s3:::${ArtifactBucketName}/*"
         - PolicyName: codecommit
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - 'codecommit:GitPull'
-                Resource: !Sub 'arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepositoryName}' 
+                  - "codecommit:GitPull"
+                Resource: !Sub "arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepositoryName}"
         - PolicyName: codebuild
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - 'codebuild:CreateReportGroup'
-                  - 'codebuild:CreateReport'
-                  - 'codebuild:UpdateReport'
-                  - 'codebuild:BatchPutTestCases'
-                  - 'codebuild:BatchPutCodeCoverages'
-                Resource: !Sub 'arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${ProjectName}-*'
+                  - "codebuild:CreateReportGroup"
+                  - "codebuild:CreateReport"
+                  - "codebuild:UpdateReport"
+                  - "codebuild:BatchPutTestCases"
+                  - "codebuild:BatchPutCodeCoverages"
+                Resource: !Sub "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/${ProjectName}-*"
         - PolicyName: vpc-access
           PolicyDocument:
             Version: "2012-10-17"
@@ -149,40 +148,40 @@ Resources:
                   - "ec2:DescribeSubnets"
                   - "ec2:DescribeSecurityGroups"
                   - "ec2:DescribeVpcs"
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - "ec2:CreateNetworkInterfacePermission"
                 Condition:
                   StringEquals:
                     ec2:AuthorizedService: codebuild.amazonaws.com
-                Resource: '*'
+                Resource: "*"
         - PolicyName: ecr
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - 'ecr:BatchCheckLayerAvailability'
-                  - 'ecr:CompleteLayerUpload'
-                  - 'ecr:GetAuthorizationToken'
-                  - 'ecr:InitiateLayerUpload'
-                  - 'ecr:PutImage'
-                  - 'ecr:UploadLayerPart'
-                Resource: '*'
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:CompleteLayerUpload"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:InitiateLayerUpload"
+                  - "ecr:PutImage"
+                  - "ecr:UploadLayerPart"
+                Resource: "*"
         - PolicyName: eks-cluster-access
-          PolicyDocument: 
+          PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - "eks:DescribeCluster"
                 Resource: "*"
-          
-      # ManagedPolicyArns: 
+
+      # ManagedPolicyArns:
       #   - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
       #   - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      Tags: 
+      Tags:
         - Key: key01
           Value: value01
 
@@ -191,8 +190,8 @@ Resources:
   #
   BuildProjectLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
-      LogGroupName: !Sub '/aws/codebuild/${ProjectName}'
+    Properties:
+      LogGroupName: !Sub "/aws/codebuild/${ProjectName}"
       RetentionInDays: 1
 
   #
@@ -200,20 +199,20 @@ Resources:
   #
   Project:
     Type: AWS::CodeBuild::Project
-    Properties: 
+    Properties:
       Name: !Ref ProjectName
       ServiceRole: !GetAtt Role.Arn
       BadgeEnabled: true
-      Artifacts: 
+      Artifacts:
         Type: NO_ARTIFACTS
       # ConcurrentBuildLimit: Integer
       # EncryptionKey: 'alias/aws/s3'
-      Environment: 
+      Environment:
         ComputeType: BUILD_GENERAL1_SMALL # BUILD_GENERAL1_MEDIUM | BUILD_GENERAL1_LARGE
-        Image: 'aws/codebuild/amazonlinux2-x86_64-standard:4.0'
+        Image: "aws/codebuild/amazonlinux2-x86_64-standard:4.0"
         Type: LINUX_CONTAINER # ARM_CONTAINER | LINUX_CONTAINER | LINUX_GPU_CONTAINER | WINDOWS_CONTAINER | WINDOWS_SERVER_2019_CONTAINER
         PrivilegedMode: true
-        EnvironmentVariables: 
+        EnvironmentVariables:
           - Name: IMAGE_REPO_NAME
             Type: PLAINTEXT
             Value: !Ref ECRRepositoryName
@@ -233,22 +232,21 @@ Resources:
           - Name: K8S_CONTAINER
             Type: PLAINTEXT
             Value: !Ref K8Scontainer
-      LogsConfig: 
-        CloudWatchLogs: 
+      LogsConfig:
+        CloudWatchLogs:
           GroupName: !Ref BuildProjectLogGroup
           Status: ENABLED
           # StreamName: String
-      Source: 
+      Source:
         Type: CODECOMMIT
-        Location: !Sub 'https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${CodeCommitRepositoryName}'
+        Location: !Sub "https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${CodeCommitRepositoryName}"
         BuildSpec: buildspec.yaml
-      SourceVersion: !Sub 'refs/heads/${CodeCommitBranchName}'
-      # Tags: 
+      SourceVersion: !Sub "refs/heads/${CodeCommitBranchName}"
+      # Tags:
       #   - Key: key01
       #     Value: value01
       Visibility: PRIVATE
-      VpcConfig: 
+      VpcConfig:
         SecurityGroupIds: !Ref SecurityGroupIds
         Subnets: !Ref SubnetIds
         VpcId: !Ref VpcId
-

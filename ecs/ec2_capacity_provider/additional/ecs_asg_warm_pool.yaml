@@ -1,4 +1,3 @@
-
 Parameters:
   InstanceName:
     Type: String
@@ -22,9 +21,9 @@ Parameters:
     Description: "The Keypair for launched instances"
 
   AMI:
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Description: "The AMI for launched instances"
-    Default: '/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id'
+    Default: "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
 
   Project:
     Type: String
@@ -42,19 +41,19 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${InstanceName}-role'
+    Properties:
+      RoleName: !Sub "${InstanceName}-role"
       Description: !Sub "The role for ${InstanceName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ec2.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -64,10 +63,10 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -79,10 +78,10 @@ Resources:
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     DependsOn: Role
-    Properties: 
+    Properties:
       # InstanceProfileName: example-ec2-instance-profile
       Path: /
-      Roles: 
+      Roles:
         - !Ref Role
 
   #
@@ -90,12 +89,12 @@ Resources:
   #
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
-    Properties: 
+    Properties:
       LaunchTemplateName: !Ref InstanceName
-      LaunchTemplateData: 
-        BlockDeviceMappings: 
+      LaunchTemplateData:
+        BlockDeviceMappings:
           - DeviceName: /dev/xvda
-            Ebs: 
+            Ebs:
               DeleteOnTermination: true
               VolumeType: gp3
               VolumeSize: 30
@@ -110,38 +109,37 @@ Resources:
         InstanceInitiatedShutdownBehavior: terminate # stop , terminate
         InstanceType: c5.large
         KeyName: !Ref KeyPair
-        Monitoring: 
+        Monitoring:
           Enabled: true
         SecurityGroupIds: !Ref SecurityGroupIds
-        TagSpecifications: 
+        TagSpecifications:
           - ResourceType: instance # instance, volume
-            Tags: 
-            - Key: Name
-              Value: !Ref InstanceName
-            - Key: Project
-              Value: !Ref Project
-            - Key: Owner
-              Value: !Ref Owner
+            Tags:
+              - Key: Name
+                Value: !Ref InstanceName
+              - Key: Project
+                Value: !Ref Project
+              - Key: Owner
+                Value: !Ref Owner
           - ResourceType: volume # instance, volume
-            Tags: 
-            - Key: Name
-              Value: !Ref InstanceName
-            - Key: Project
-              Value: !Ref Project
-            - Key: Owner
-              Value: !Ref Owner
+            Tags:
+              - Key: Name
+                Value: !Ref InstanceName
+              - Key: Project
+                Value: !Ref Project
+              - Key: Owner
+                Value: !Ref Owner
         UserData:
-          Fn::Base64: ### Bootstrapping container instances
-            !Sub |
-              #!/bin/bash
-              cat <<'EOF' >> /etc/ecs/ecs.config
-              ECS_CLUSTER=${ECSCluster}
-              ECS_LOGLEVEL=info
-              ECS_WARM_POOLS_CHECK=true
-              EOF
-      TagSpecifications: 
+          Fn::Base64: !Sub | ### Bootstrapping container instances
+            #!/bin/bash
+            cat <<'EOF' >> /etc/ecs/ecs.config
+            ECS_CLUSTER=${ECSCluster}
+            ECS_LOGLEVEL=info
+            ECS_WARM_POOLS_CHECK=true
+            EOF
+      TagSpecifications:
         - ResourceType: launch-template
-          Tags: 
+          Tags:
             - Key: Name
               Value: !Ref InstanceName
             - Key: Project
@@ -154,36 +152,36 @@ Resources:
   #
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
-    Properties: 
+    Properties:
       AutoScalingGroupName: !Ref InstanceName
       # CapacityRebalance: Boolean
-      Cooldown: '120'
+      Cooldown: "120"
       DesiredCapacityType: units # units , vcpu , memory-mib
-      DesiredCapacity: '3'
-      MinSize: '3'
-      MaxSize: '20'
+      DesiredCapacity: "3"
+      MinSize: "3"
+      MaxSize: "20"
       HealthCheckGracePeriod: 60
       HealthCheckType: EC2 # EC2 , ELB
       NewInstancesProtectedFromScaleIn: false
-      LaunchTemplate: 
+      LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber # DefaultVersionNumber , LatestVersionNumber
-      Tags: 
+      Tags:
         - PropagateAtLaunch: true
           Key: Name
           Value: !Ref InstanceName
-      # TargetGroupARNs: 
+      # TargetGroupARNs:
       #   - String
       VPCZoneIdentifier: !Ref SubnetIds
-  
+
   #
   # Warm Pool
   #
   WarmPool:
     Type: AWS::AutoScaling::WarmPool
-    Properties: 
+    Properties:
       AutoScalingGroupName: !Ref AutoScalingGroup
-      InstanceReusePolicy: 
+      InstanceReusePolicy:
         ReuseOnScaleIn: true
       MaxGroupPreparedCapacity: 3
       MinSize: 3

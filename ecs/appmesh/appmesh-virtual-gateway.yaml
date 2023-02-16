@@ -1,7 +1,6 @@
-
 Parameters:
   MeshName:
-    Description: 'The name of mesh'
+    Description: "The name of mesh"
     Type: String
 
 Resources:
@@ -10,27 +9,27 @@ Resources:
   #
   VirtualGateway:
     Type: AWS::AppMesh::VirtualGateway
-    Properties: 
+    Properties:
       VirtualGatewayName: virtual-gateway
       MeshName: !Ref MeshName
       # MeshOwner: String
-      Spec: 
-        # BackendDefaults: 
-        #   ClientPolicy: 
-        #     TLS: 
+      Spec:
+        # BackendDefaults:
+        #   ClientPolicy:
+        #     TLS:
         #       Enforce: false
-        #       # Certificate: 
+        #       # Certificate:
         #       #   VirtualGatewayClientTlsCertificate
-        #       # Ports: 
+        #       # Ports:
         #       #   - Integer
-        #       # Validation: 
+        #       # Validation:
         #       #   VirtualGatewayTlsValidationContext
-        Listeners: 
-          - ConnectionPool: 
-              HTTP: 
-                  MaxConnections: 10240
-                  MaxPendingRequests: 20480
-            # HealthCheck: 
+        Listeners:
+          - ConnectionPool:
+              HTTP:
+                MaxConnections: 10240
+                MaxPendingRequests: 20480
+            # HealthCheck:
             #   HealthyThreshold: 3
             #   IntervalMillis: 5000 # ms
             #   Path: '/'
@@ -38,41 +37,41 @@ Resources:
             #   Protocol: http
             #   TimeoutMillis: 5000 # ms
             #   UnhealthyThreshold: 2
-            PortMapping: 
+            PortMapping:
               Port: 5000
               Protocol: http
-            # TLS: 
+            # TLS:
             #   VirtualGatewayListenerTls
-        Logging: 
-          AccessLog: 
-            File: 
-              Path: '/dev/stdout'
-  
+        Logging:
+          AccessLog:
+            File:
+              Path: "/dev/stdout"
+
   #
   # AppMesh - Gateway Route
   #
   GatewayRouteFoo:
     Type: AWS::AppMesh::GatewayRoute
-    Properties: 
+    Properties:
       GatewayRouteName: gateway-route-foo
       VirtualGatewayName: !GetAtt VirtualGateway.VirtualGatewayName
       MeshName: !Ref MeshName
       # MeshOwner: String
-      Spec: 
-        HttpRoute: 
-          Action: 
-            Target: 
-              VirtualService: 
+      Spec:
+        HttpRoute:
+          Action:
+            Target:
+              VirtualService:
                 VirtualServiceName: foo-virtual-service
-          Match: 
-            # Headers: 
+          Match:
+            # Headers:
             #   - HttpGatewayRouteHeader
-            # Hostname: 
+            # Hostname:
             #   GatewayRouteHostnameMatch
             # Method: String
-            # Path: 
+            # Path:
             #   HttpPathMatch
-            Prefix: '/foo'
-            # QueryParameters: 
+            Prefix: "/foo"
+            # QueryParameters:
             #   - QueryParameter
         Priority: 1

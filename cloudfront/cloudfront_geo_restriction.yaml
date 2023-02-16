@@ -1,7 +1,6 @@
-
 Parameters:
   BucketName:
-    Description: 'The bucket name of s3'
+    Description: "The bucket name of s3"
     Type: String
 
   Project:
@@ -20,8 +19,8 @@ Resources:
   #
   OriginAccessControl:
     Type: AWS::CloudFront::OriginAccessControl
-    Properties: 
-      OriginAccessControlConfig: 
+    Properties:
+      OriginAccessControlConfig:
         Description: "The OAC for access control to s3 bucket"
         Name: !Sub "${BucketName}-oac"
         OriginAccessControlOriginType: s3
@@ -33,19 +32,19 @@ Resources:
   #
   Distribution:
     Type: AWS::CloudFront::Distribution
-    Properties: 
-      DistributionConfig: 
-        Origins: 
+    Properties:
+      DistributionConfig:
+        Origins:
           - Id: S3Origin
             DomainName: !Sub ${BucketName}.s3.amazonaws.com
-            OriginShield: 
+            OriginShield:
               Enabled: true
               OriginShieldRegion: !Ref AWS::Region
             S3OriginConfig:
-              OriginAccessIdentity: ''
+              OriginAccessIdentity: ""
             OriginAccessControlId: !GetAtt OriginAccessControl.Id
-        DefaultCacheBehavior: 
-          AllowedMethods: # GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE 
+        DefaultCacheBehavior:
+          AllowedMethods: # GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE
             - GET
             - HEAD
             - OPTIONS
@@ -56,7 +55,7 @@ Resources:
           # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           Compress: true
-          ForwardedValues: 
+          ForwardedValues:
             QueryString: false
             Cookies:
               Forward: none
@@ -67,19 +66,19 @@ Resources:
         HttpVersion: http2and3 # http1.1 | http2 | http2and3 | http3
         IPV6Enabled: false
         PriceClass: PriceClass_All # PriceClass_100 | PriceClass_200 | PriceClass_All
-        # Logging: 
+        # Logging:
         #   Logging
-        # OriginGroups: 
-        #   Items: 
+        # OriginGroups:
+        #   Items:
         #     - OriginGroup
         #   Quantity: Integer
         # WebACLId: String
-        Restrictions: 
-          GeoRestriction: 
+        Restrictions:
+          GeoRestriction:
             RestrictionType: blacklist # blacklist | none | whitelist
             Locations: # ISO 3166 country code (Alpha-2)
               - KR
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

@@ -1,4 +1,3 @@
-
 Parameters:
   SourceRepository:
     Type: String
@@ -14,12 +13,12 @@ Resources:
   #
   ReplicationConfiguration:
     Type: AWS::ECR::ReplicationConfiguration
-    Properties: 
-      ReplicationConfiguration: 
-        Rules: 
-          - Destinations: 
+    Properties:
+      ReplicationConfiguration:
+        Rules:
+          - Destinations:
               - Region: !Ref TargetRegion # your region
                 RegistryId: !Ref AWS::AccountId # your account
-            RepositoryFilters: 
+            RepositoryFilters:
               - Filter: !Ref SourceRepository
                 FilterType: PREFIX_MATCH

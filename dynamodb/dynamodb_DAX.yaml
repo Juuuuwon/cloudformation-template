@@ -1,4 +1,3 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
@@ -8,7 +7,6 @@ Parameters:
 
   TableName:
     Type: String
-
 
 Resources:
   #
@@ -39,7 +37,7 @@ Resources:
   #
   DAXSubnetGroup:
     Type: AWS::DAX::SubnetGroup
-    Properties: 
+    Properties:
       SubnetGroupName: example-dax-subnet-group
       SubnetIds: !Ref SubnetIds
 
@@ -48,9 +46,9 @@ Resources:
   #
   DAXParameterGroup:
     Type: AWS::DAX::ParameterGroup
-    Properties: 
+    Properties:
       ParameterGroupName: example-dax-parameter-group
-      ParameterNameValues: 
+      ParameterNameValues:
         "record-ttl-millis": "300000"
         "query-ttl-millis": "300000"
 
@@ -59,8 +57,8 @@ Resources:
   #
   DAXCluster:
     Type: AWS::DAX::Cluster
-    Properties: 
-      # AvailabilityZones: 
+    Properties:
+      # AvailabilityZones:
       #   - String
       ClusterEndpointEncryptionType: TLS
       ClusterName: example-dax-cluster
@@ -73,6 +71,6 @@ Resources:
       # PreferredMaintenanceWindow: String
       ReplicationFactor: 3
       SecurityGroupIds: !Ref SecurityGroupIds
-      SSESpecification: 
+      SSESpecification:
         SSEEnabled: true
       # Tags: Json

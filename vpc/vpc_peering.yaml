@@ -1,11 +1,10 @@
-
 Parameters:
   SourceVPC:
     Type: AWS::EC2::VPC::Id
 
   TargetVPC:
     Type: AWS::EC2::VPC::Id
-  
+
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
@@ -15,7 +14,7 @@ Parameters:
     Type: String
     Description: "The team name for owned this resources"
     Default: TeamKorea
-  
+
   NamePrefix:
     Type: String
     Description: "The prefix of resource's Name tag"
@@ -24,15 +23,15 @@ Parameters:
 Resources:
   VpcPeeringConnection:
     Type: AWS::EC2::VPCPeeringConnection
-    Properties: 
+    Properties:
       # PeerOwnerId: String
       PeerRegion: us-east-1
       # PeerRoleArn: String
       PeerVpcId: !Ref TargetVPC
       VpcId: !Ref SourceVPC
-      Tags: 
+      Tags:
         - Key: Name
-          Value: !Sub '${NamePrefix}-vpc-peering'
+          Value: !Sub "${NamePrefix}-vpc-peering"
         - Key: Project
           Value: !Ref Project
         - Key: Owner

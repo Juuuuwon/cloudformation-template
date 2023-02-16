@@ -1,95 +1,94 @@
-
 Resources:
   #
   # DynamoDB - Table
   #
   Table:
     Type: AWS::DynamoDB::Table
-    Properties: 
-      TableName: 'playlist'
+    Properties:
+      TableName: "playlist"
       TableClass: STANDARD # STANDARD , STANDARD_INFREQUENT_ACCESS
-      KeySchema: 
-        - AttributeName: 'Album'
+      KeySchema:
+        - AttributeName: "Album"
           KeyType: HASH # HASH (PartitionKey), RANGE (SortKey)
-        - AttributeName: 'Artist'
+        - AttributeName: "Artist"
           KeyType: RANGE # HASH (PartitionKey), RANGE (SortKey)
-      AttributeDefinitions: 
-        - AttributeName: 'Album'
+      AttributeDefinitions:
+        - AttributeName: "Album"
           AttributeType: S # S (String) , B (Binary) , N (Number)
-        - AttributeName: 'Artist'
+        - AttributeName: "Artist"
           AttributeType: S # S (String) , B (Binary) , N (Number)
-      BillingMode: PROVISIONED # PROVISIONED , PAY_PER_REQUEST 
-      ProvisionedThroughput: 
+      BillingMode: PROVISIONED # PROVISIONED , PAY_PER_REQUEST
+      ProvisionedThroughput:
         ReadCapacityUnits: 10
         WriteCapacityUnits: 10
-      SSESpecification: 
+      SSESpecification:
         # KMSMasterKeyId: String
         SSEEnabled: true
         SSEType: KMS
-      ContributorInsightsSpecification: 
+      ContributorInsightsSpecification:
         Enabled: true
-      PointInTimeRecoverySpecification: 
+      PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-      Tags: 
+      Tags:
         - Key: key01
           Value: value01
 
   #
   # Application Auto Scaling - Scalable Target (for write)
   #
-  TableWriteCapacityScalableTarget: 
+  TableWriteCapacityScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     DependsOn: Table
-    Properties: 
+    Properties:
       MaxCapacity: 1000
       MinCapacity: 10
       ResourceId: !Sub table/${Table}
       RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_DynamoDBTable
       ScalableDimension: "dynamodb:table:WriteCapacityUnits"
       ServiceNamespace: dynamodb
-  
+
   #
   # Application Auto Scaling - Policy (for write)
   #
-  TableWriteScalingPolicy: 
+  TableWriteScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties: 
+    Properties:
       PolicyName: WriteAutoScalingPolicy
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref TableWriteCapacityScalableTarget
-      TargetTrackingScalingPolicyConfiguration: 
+      TargetTrackingScalingPolicyConfiguration:
         TargetValue: 70
         ScaleInCooldown: 60
         ScaleOutCooldown: 60
-        PredefinedMetricSpecification: 
+        PredefinedMetricSpecification:
           PredefinedMetricType: DynamoDBWriteCapacityUtilization
-  
+
   #
   # Application Auto Scaling - Scalable Target (for read)
   #
-  TableReadCapacityScalableTarget: 
+  TableReadCapacityScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     DependsOn: Table
-    Properties: 
+    Properties:
       MaxCapacity: 1000
       MinCapacity: 10
       ResourceId: !Sub table/${Table}
       RoleARN: !Sub arn:aws:iam::${AWS::AccountId}:role/aws-service-role/dynamodb.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_DynamoDBTable
       ScalableDimension: "dynamodb:table:ReadCapacityUnits"
       ServiceNamespace: dynamodb
-  
+
   #
   # Application Auto Scaling - Policy (for read)
   #
-  TableReadScalingPolicy: 
+  TableReadScalingPolicy:
     Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties: 
+    Properties:
       PolicyName: ReadAutoScalingPolicy
       PolicyType: TargetTrackingScaling
       ScalingTargetId: !Ref TableReadCapacityScalableTarget
-      TargetTrackingScalingPolicyConfiguration: 
+      TargetTrackingScalingPolicyConfiguration:
         TargetValue: 70
         ScaleInCooldown: 60
         ScaleOutCooldown: 60
-        PredefinedMetricSpecification: 
+        PredefinedMetricSpecification:
           PredefinedMetricType: DynamoDBReadCapacityUtilization

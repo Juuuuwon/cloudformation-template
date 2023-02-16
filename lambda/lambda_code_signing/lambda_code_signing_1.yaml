@@ -1,4 +1,3 @@
-
 Parameters:
   Project:
     Type: String
@@ -21,12 +20,12 @@ Resources:
   #
   SigningProfile:
     Type: AWS::Signer::SigningProfile
-    Properties: 
+    Properties:
       PlatformId: AWSLambda-SHA384-ECDSA
-      SignatureValidityPeriod: 
-          Type: DAYS # DAYS | MONTHS | YEARS
-          Value: 7
-      Tags: 
+      SignatureValidityPeriod:
+        Type: DAYS # DAYS | MONTHS | YEARS
+        Value: 7
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

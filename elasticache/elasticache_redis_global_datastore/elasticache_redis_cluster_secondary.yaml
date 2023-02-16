@@ -1,8 +1,7 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
@@ -30,8 +29,8 @@ Resources:
   #
   ElasticacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
-    Properties: 
-      CacheSubnetGroupName: !Sub '${NamePrefix}-redis-cluster-subnetgroup'
+    Properties:
+      CacheSubnetGroupName: !Sub "${NamePrefix}-redis-cluster-subnetgroup"
       Description: This is redis cluster subnet group
       SubnetIds: !Ref SubnetIds
 
@@ -41,9 +40,9 @@ Resources:
   ElasticacheReplicationGroup:
     Type: AWS::ElastiCache::ReplicationGroup
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       GlobalReplicationGroupId: !Ref GlobalReplicationGroupId
-      ReplicationGroupId: !Sub '${NamePrefix}-redis-cluster'
+      ReplicationGroupId: !Sub "${NamePrefix}-redis-cluster"
       ReplicationGroupDescription: This is Elasticache Redis (cluster mode enabled)
       ReplicasPerNodeGroup: 2
       # Port: 6379

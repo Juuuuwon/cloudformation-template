@@ -1,4 +1,3 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
@@ -27,12 +26,12 @@ Resources:
   #
   ElasticacheParameterGroup:
     Type: AWS::ElastiCache::ParameterGroup
-    Properties: 
-      # memcached1.4 | memcached1.5 | memcached1.6 
+    Properties:
+      # memcached1.4 | memcached1.5 | memcached1.6
       # redis2.6 | redis2.8 | redis3.2 | redis4.0 | redis5.0 | redis6.x
       CacheParameterGroupFamily: memcached1.6
       Description: "This is memcached parameter group"
-      # Properties: 
+      # Properties:
       #   cluster-enabled: 'no'
 
   #
@@ -40,8 +39,8 @@ Resources:
   #
   ElasticacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
-    Properties: 
-      CacheSubnetGroupName: !Sub '${NamePrefix}-memcached-cluster-subnetgroup'
+    Properties:
+      CacheSubnetGroupName: !Sub "${NamePrefix}-memcached-cluster-subnetgroup"
       Description: This is memcached subnet group
       SubnetIds: !Ref SubnetIds
 
@@ -51,10 +50,10 @@ Resources:
   ElasticacheCluster:
     Type: AWS::ElastiCache::CacheCluster
     DeletionPolicy: Delete
-    Properties: 
-      ClusterName: !Sub '${NamePrefix}-memcached-cluster'
+    Properties:
+      ClusterName: !Sub "${NamePrefix}-memcached-cluster"
       Engine: memcached # memcached | redis
-      EngineVersion: '1.6.6' # aws elasticache describe-cache-engine-versions
+      EngineVersion: "1.6.6" # aws elasticache describe-cache-engine-versions
       CacheNodeType: cache.m6g.large
       NumCacheNodes: 3
       Port: 11211

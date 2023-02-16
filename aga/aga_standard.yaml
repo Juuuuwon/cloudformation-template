@@ -1,4 +1,3 @@
-
 Parameters:
   Project:
     Type: String
@@ -9,7 +8,7 @@ Parameters:
     Type: String
     Description: "The team name for owned this resources"
     Default: TeamKorea
-  
+
   ApplicationLoadBalancerArn:
     Type: String
     Description: "The arn of application load balancer, backend"
@@ -17,13 +16,13 @@ Parameters:
 Resources:
   Accelerator:
     Type: AWS::GlobalAccelerator::Accelerator
-    Properties: 
+    Properties:
       Name: aga-example-standard
       Enabled: True
-      # IpAddresses: 
+      # IpAddresses:
       #   - String
       IpAddressType: IPV4 # DUAL_STACK | IPV4
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -31,18 +30,18 @@ Resources:
 
   Listener:
     Type: AWS::GlobalAccelerator::Listener
-    Properties: 
+    Properties:
       AcceleratorArn: !GetAtt Accelerator.AcceleratorArn
       ClientAffinity: NONE # NONE | SOURCE_IP
-      PortRanges: 
+      PortRanges:
         - FromPort: 80
           ToPort: 80
       Protocol: TCP # TCP | UDP
 
   EndpointGroup:
     Type: AWS::GlobalAccelerator::EndpointGroup
-    Properties: 
-      EndpointConfigurations: 
+    Properties:
+      EndpointConfigurations:
         - ClientIPPreservationEnabled: True
           EndpointId: !Ref ApplicationLoadBalancerArn
           Weight: 128
@@ -53,6 +52,6 @@ Resources:
       HealthCheckProtocol: HTTP # HTTP | HTTPS | TCP
       ThresholdCount: 3
       ListenerArn: !GetAtt Listener.ListenerArn
-      # PortOverrides: 
+      # PortOverrides:
       #   - PortOverride
       TrafficDialPercentage: 100

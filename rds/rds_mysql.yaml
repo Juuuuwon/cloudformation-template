@@ -1,8 +1,7 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
@@ -26,18 +25,18 @@ Resources:
   # IAM - Role (for RDS Monitoring)
   #
   MonitoringRole:
-    Type: 'AWS::IAM::Role'
+    Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub '${NamePrefix}-rds-mysql-monitoring-role'
+      RoleName: !Sub "${NamePrefix}-rds-mysql-monitoring-role"
       ManagedPolicyArns:
-      - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+        - "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
       AssumeRolePolicyDocument:
-        Version: '2008-10-17'
+        Version: "2008-10-17"
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: 'monitoring.rds.amazonaws.com'
-          Action: 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              Service: "monitoring.rds.amazonaws.com"
+            Action: "sts:AssumeRole"
 
   #
   # Secrets Manager - Secret
@@ -45,11 +44,11 @@ Resources:
   MasterUserSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: !Sub '${NamePrefix}-rds-mysql-instance/admin'
-      Description: 'This is secret of rds username and password'
+      Name: !Sub "${NamePrefix}-rds-mysql-instance/admin"
+      Description: "This is secret of rds username and password"
       GenerateSecretString:
         SecretStringTemplate: '{"username": "admin"}'
-        GenerateStringKey: 'password'
+        GenerateStringKey: "password"
         ExcludeCharacters: '"@/\'
         PasswordLength: 16
 
@@ -68,10 +67,10 @@ Resources:
   #
   DBParameterGroup:
     Type: AWS::RDS::DBParameterGroup
-    Properties: 
-      Description: 'This is parameter group of mysql8.0'
+    Properties:
+      Description: "This is parameter group of mysql8.0"
       Family: mysql8.0
-      # Parameters: 
+      # Parameters:
       #   Key : Value
 
   #
@@ -79,11 +78,11 @@ Resources:
   #
   OptionGroup:
     Type: AWS::RDS::OptionGroup
-    Properties: 
-      OptionGroupDescription: 'This is options group of mysql8.0'
+    Properties:
+      OptionGroupDescription: "This is options group of mysql8.0"
       EngineName: mysql
-      MajorEngineVersion: '8.0'
-      # OptionConfigurations: 
+      MajorEngineVersion: "8.0"
+      # OptionConfigurations:
       #   - OptionConfiguration
 
   #
@@ -91,9 +90,9 @@ Resources:
   #
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
-    Properties: 
-      DBSubnetGroupDescription: 'This is subnet group of example'
-      DBSubnetGroupName: !Sub '${NamePrefix}-rds-mysql-subnetgroup'
+    Properties:
+      DBSubnetGroupDescription: "This is subnet group of example"
+      DBSubnetGroupName: !Sub "${NamePrefix}-rds-mysql-subnetgroup"
       SubnetIds: !Ref SubnetIds
 
   #
@@ -102,22 +101,22 @@ Resources:
   DBInstance:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
-    Properties: 
-      DBInstanceIdentifier: !Sub '${NamePrefix}-rds-mysql-instance'
+    Properties:
+      DBInstanceIdentifier: !Sub "${NamePrefix}-rds-mysql-instance"
       Engine: mysql # mysql , mariadb, aurora , aurora-mysql , aurora-postgresql ...
-      EngineVersion: '8.0.28'
+      EngineVersion: "8.0.28"
       DBInstanceClass: db.t4g.small
       StorageType: gp2
       # Iops: Integer
-      AllocatedStorage: '20'
-      MaxAllocatedStorage: '1000'
+      AllocatedStorage: "20"
+      MaxAllocatedStorage: "1000"
       StorageEncrypted: true
       # KmsKeyId: String
       # DBSnapshotIdentifier: String
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
       # PreferredMaintenanceWindow: String
-      BackupRetentionPeriod: '7'
+      BackupRetentionPeriod: "7"
       # PreferredBackupWindow: String
       CopyTagsToSnapshot: true
       DBParameterGroupName: !Ref DBParameterGroup
@@ -127,8 +126,24 @@ Resources:
       DeletionProtection: false
       EnableIAMDatabaseAuthentication: true
       DBName: exampledb
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref MasterUserSecret, ':SecretString:username}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref MasterUserSecret, ':SecretString:password}}' ]]
+      MasterUsername:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref MasterUserSecret,
+            ":SecretString:username}}",
+          ],
+        ]
+      MasterUserPassword:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref MasterUserSecret,
+            ":SecretString:password}}",
+          ],
+        ]
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
       MonitoringRoleArn: !GetAtt MonitoringRole.Arn
       EnableCloudwatchLogsExports: # audit , error, general , slowquery
@@ -140,7 +155,7 @@ Resources:
       Port: 3306
       PubliclyAccessible: false
       VPCSecurityGroups: !Ref SecurityGroupIds
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

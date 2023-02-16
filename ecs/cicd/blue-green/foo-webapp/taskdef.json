@@ -69,14 +69,9 @@
   "placementConstraints": [],
   "memory": "1024",
   "taskRoleArn": "arn:aws:iam::242593025403:role/ecs-foo-webapp-service-TaskRole-1MM4ZDXR60IGC",
-  "compatibilities": [
-    "EC2",
-    "FARGATE"
-  ],
+  "compatibilities": ["EC2", "FARGATE"],
   "family": "foo-webapp-fargate",
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "requiresCompatibilities": ["FARGATE"],
   "networkMode": "awsvpc",
   "runtimePlatform": null,
   "cpu": "512",

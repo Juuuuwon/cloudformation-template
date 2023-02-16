@@ -1,10 +1,9 @@
-
 Parameters:
   Subnets:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroups:
-    Type: List<AWS::EC2::SecurityGroup::Id>  
+    Type: List<AWS::EC2::SecurityGroup::Id>
 
   Project:
     Type: String
@@ -22,7 +21,7 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       RoleName: lambda-myFunction-role
       Description: "The role for lambda function myFunction"
       AssumeRolePolicyDocument:
@@ -30,11 +29,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - lambda.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -44,10 +43,10 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -58,14 +57,14 @@ Resources:
   #
   Function:
     Type: AWS::Lambda::Function
-    Properties: 
+    Properties:
       FunctionName: myFunction
       Description: "The lambda function within vpc"
       Runtime: python3.9 # python3.9 , nodejs14.x  ...
       Architectures: # arm64 , x86_64
         - arm64
       PackageType: Zip # Image , Zip
-      Code: 
+      Code:
         # S3Bucket: String
         # S3Key: String
         # S3ObjectVersion: String
@@ -81,18 +80,18 @@ Resources:
       MemorySize: 512 # MB
       Timeout: 60 # seconds
       Role: !GetAtt Role.Arn
-      EphemeralStorage: 
+      EphemeralStorage:
         Size: 512 # MB
-      # Environment: 
-      #   Variables:  
+      # Environment:
+      #   Variables:
       #     key01: value01
-      # TracingConfig: 
+      # TracingConfig:
       #   Mode: Active # Active , PassThrough
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-      VpcConfig: 
+      VpcConfig:
         SecurityGroupIds: !Ref SecurityGroups
         SubnetIds: !Ref Subnets

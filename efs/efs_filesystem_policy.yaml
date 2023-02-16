@@ -1,4 +1,3 @@
-
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
@@ -28,21 +27,21 @@ Resources:
   #
   FileSystem:
     Type: AWS::EFS::FileSystem
-    Properties: 
-      BackupPolicy: 
+    Properties:
+      BackupPolicy:
         Status: ENABLED
       Encrypted: true
       # KmsKeyId: String
-      FileSystemTags: 
+      FileSystemTags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
         - Key: Name
           Value: Unicorn-efs
-      LifecyclePolicies: 
-        - TransitionToIA: 'AFTER_30_DAYS' # AFTER_7_DAYS , AFTER_14_DAYS , AFTER_30_DAYS , AFTER_60_DAYS , AFTER_90_DAYS
-        - TransitionToPrimaryStorageClass: 'AFTER_1_ACCESS'
+      LifecyclePolicies:
+        - TransitionToIA: "AFTER_30_DAYS" # AFTER_7_DAYS , AFTER_14_DAYS , AFTER_30_DAYS , AFTER_60_DAYS , AFTER_90_DAYS
+        - TransitionToPrimaryStorageClass: "AFTER_1_ACCESS"
       PerformanceMode: generalPurpose # generalPurpose , maxIO
       ThroughputMode: bursting # bursting , provisioned
       # ProvisionedThroughputInMibps: Double
@@ -68,30 +67,30 @@ Resources:
             Condition:
               Bool:
                 "aws:SecureTransport": "false"
-  
+
   #
   # EFS - MountTarget
   #
   MountTargetA:
     Type: AWS::EFS::MountTarget
-    Properties: 
+    Properties:
       FileSystemId: !Ref FileSystem
       # IpAddress: String
       SecurityGroups: !Ref SecurityGroupIds
-      SubnetId: !Select [ 0 , !Ref SubnetIds ]
+      SubnetId: !Select [0, !Ref SubnetIds]
 
   MountTargetB:
     Type: AWS::EFS::MountTarget
-    Properties: 
+    Properties:
       FileSystemId: !Ref FileSystem
       # IpAddress: String
       SecurityGroups: !Ref SecurityGroupIds
-      SubnetId: !Select [ 1 , !Ref SubnetIds ]
-  
+      SubnetId: !Select [1, !Ref SubnetIds]
+
   MountTargetC:
     Type: AWS::EFS::MountTarget
-    Properties: 
+    Properties:
       FileSystemId: !Ref FileSystem
       # IpAddress: String
       SecurityGroups: !Ref SecurityGroupIds
-      SubnetId: !Select [ 2 , !Ref SubnetIds ]
+      SubnetId: !Select [2, !Ref SubnetIds]

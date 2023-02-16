@@ -1,8 +1,7 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
@@ -26,18 +25,18 @@ Resources:
   # IAM - Role (for RDS Monitoring)
   #
   MonitoringRole:
-    Type: 'AWS::IAM::Role'
+    Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub '${NamePrefix}-rds-postgresql-monitoring-role'
+      RoleName: !Sub "${NamePrefix}-rds-postgresql-monitoring-role"
       ManagedPolicyArns:
-      - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+        - "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
       AssumeRolePolicyDocument:
-        Version: '2008-10-17'
+        Version: "2008-10-17"
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: 'monitoring.rds.amazonaws.com'
-          Action: 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              Service: "monitoring.rds.amazonaws.com"
+            Action: "sts:AssumeRole"
 
   #
   # Secrets Manager - Secret
@@ -45,11 +44,11 @@ Resources:
   MasterUserSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: !Sub '${NamePrefix}-rds-postgresql-instance/postgres'
-      Description: 'This is secret of rds username and password'
+      Name: !Sub "${NamePrefix}-rds-postgresql-instance/postgres"
+      Description: "This is secret of rds username and password"
       GenerateSecretString:
         SecretStringTemplate: '{"username": "postgres"}'
-        GenerateStringKey: 'password'
+        GenerateStringKey: "password"
         ExcludeCharacters: '"@/\'
         PasswordLength: 16
 
@@ -68,10 +67,10 @@ Resources:
   #
   DBParameterGroup:
     Type: AWS::RDS::DBParameterGroup
-    Properties: 
-      Description: 'This is parameter group of postgres14'
+    Properties:
+      Description: "This is parameter group of postgres14"
       Family: postgres14
-      # Parameters: 
+      # Parameters:
       #   Key : Value
 
   #
@@ -79,11 +78,11 @@ Resources:
   #
   OptionGroup:
     Type: AWS::RDS::OptionGroup
-    Properties: 
-      OptionGroupDescription: 'This is options group of postgres14'
+    Properties:
+      OptionGroupDescription: "This is options group of postgres14"
       EngineName: postgres
-      MajorEngineVersion: '14'
-      # OptionConfigurations: 
+      MajorEngineVersion: "14"
+      # OptionConfigurations:
       #   - OptionConfiguration
 
   #
@@ -91,9 +90,9 @@ Resources:
   #
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
-    Properties: 
-      DBSubnetGroupDescription: 'This is subnet group of example'
-      DBSubnetGroupName: !Sub '${NamePrefix}-rds-postgresql-subnetgroup'
+    Properties:
+      DBSubnetGroupDescription: "This is subnet group of example"
+      DBSubnetGroupName: !Sub "${NamePrefix}-rds-postgresql-subnetgroup"
       SubnetIds: !Ref SubnetIds
 
   #
@@ -102,21 +101,21 @@ Resources:
   DBInstance:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
-    Properties: 
-      DBInstanceIdentifier: !Sub '${NamePrefix}-rds-postgresql-instance'
+    Properties:
+      DBInstanceIdentifier: !Sub "${NamePrefix}-rds-postgresql-instance"
       Engine: postgres # mysql , postgres , mariadb , aurora , aurora-mysql , aurora-postgresql ...
-      EngineVersion: '14.2'
+      EngineVersion: "14.2"
       DBInstanceClass: db.t4g.small
       StorageType: gp2
       # Iops: Integer
-      AllocatedStorage: '20'
-      MaxAllocatedStorage: '1000'
+      AllocatedStorage: "20"
+      MaxAllocatedStorage: "1000"
       StorageEncrypted: true
       # KmsKeyId: String
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
       # PreferredMaintenanceWindow: String
-      BackupRetentionPeriod: '7'
+      BackupRetentionPeriod: "7"
       # PreferredBackupWindow: String
       CopyTagsToSnapshot: true
       DBParameterGroupName: !Ref DBParameterGroup
@@ -126,8 +125,24 @@ Resources:
       DeletionProtection: false
       EnableIAMDatabaseAuthentication: true
       DBName: exampledb
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref MasterUserSecret, ':SecretString:username}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref MasterUserSecret, ':SecretString:password}}' ]]
+      MasterUsername:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref MasterUserSecret,
+            ":SecretString:username}}",
+          ],
+        ]
+      MasterUserPassword:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref MasterUserSecret,
+            ":SecretString:password}}",
+          ],
+        ]
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
       MonitoringRoleArn: !GetAtt MonitoringRole.Arn
       EnableCloudwatchLogsExports: # postgresql , upgrade
@@ -137,12 +152,12 @@ Resources:
       Port: 5432
       PubliclyAccessible: false
       VPCSecurityGroups: !Ref SecurityGroupIds
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-  
+
   #
   # RDS - Read Replica Instance
   #
@@ -151,12 +166,12 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       # DBClusterIdentifier: String
-      DBInstanceIdentifier: !Sub '${NamePrefix}-rds-postgresql-instance-rr-1'
+      DBInstanceIdentifier: !Sub "${NamePrefix}-rds-postgresql-instance-rr-1"
       SourceDBInstanceIdentifier: !Ref DBInstance
       DBInstanceClass: db.t4g.small
       StorageType: gp2
       # Iops: Integer
-      MaxAllocatedStorage: '1000'
+      MaxAllocatedStorage: "1000"
       Tags:
         - Key: Project
           Value: !Ref Project

@@ -1,4 +1,3 @@
-
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
@@ -13,27 +12,27 @@ Resources:
   #
   Namespace:
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
-    Properties: 
-      Description: 'This is the namespace for appmesh'
+    Properties:
+      Description: "This is the namespace for appmesh"
       Name: !Ref NamespaceName
-      Properties: 
-        DnsProperties: 
-            SOA: 
-              TTL: 15.0
+      Properties:
+        DnsProperties:
+          SOA:
+            TTL: 15.0
       Vpc: !Ref VpcId
-  
+
   #
   # CloudMap - Service
   #
   FrontendService:
     Type: AWS::ServiceDiscovery::Service
-    Properties: 
+    Properties:
       Name: frontend
-      Description: 'This is the service for appmesh'
+      Description: "This is the service for appmesh"
       NamespaceId: !GetAtt Namespace.Id
       # Type: HTTP
-      DnsConfig: 
-        DnsRecords: 
+      DnsConfig:
+        DnsRecords:
           - TTL: 15.0
             Type: A
         RoutingPolicy: WEIGHTED # WEIGHTED | MULTIVALUE
@@ -41,18 +40,18 @@ Resources:
       #   FailureThreshold: 3.0
       #   ResourcePath: '/health'
       #   Type: HTTP
-      HealthCheckCustomConfig: 
+      HealthCheckCustomConfig:
         FailureThreshold: 2
-  
+
   BackendService:
     Type: AWS::ServiceDiscovery::Service
-    Properties: 
+    Properties:
       Name: backend
-      Description: 'This is the service for appmesh'
+      Description: "This is the service for appmesh"
       NamespaceId: !GetAtt Namespace.Id
       # Type: HTTP
-      DnsConfig: 
-        DnsRecords: 
+      DnsConfig:
+        DnsRecords:
           - TTL: 15.0
             Type: A
         RoutingPolicy: WEIGHTED # WEIGHTED | MULTIVALUE
@@ -60,16 +59,15 @@ Resources:
       #   FailureThreshold: 3.0
       #   ResourcePath: '/health'
       #   Type: HTTP
-      HealthCheckCustomConfig: 
+      HealthCheckCustomConfig:
         FailureThreshold: 2
 
 Outputs:
   NamespaceId:
     Value: !Ref Namespace
-  
+
   FrontendServiceArn:
     Value: !GetAtt FrontendService.Arn
-  
+
   BackendServiceArn:
     Value: !GetAtt BackendService.Arn
-  

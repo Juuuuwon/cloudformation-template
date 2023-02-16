@@ -2,7 +2,7 @@ Parameters:
   DashboardName:
     Type: String
     Description: "The name of the dashboard"
-  
+
   ClusterName:
     Type: String
     Description: "The name of the cluster name to monitor"
@@ -10,10 +10,10 @@ Parameters:
   ServiceName:
     Type: String
     Description: "The name of the service name to monitor"
-  
+
   ALBName:
     Type: String
-    Description: "The substring of ALB arn. ex) app/test-alb/33afb7c04632e599" 
+    Description: "The substring of ALB arn. ex) app/test-alb/33afb7c04632e599"
 
 Resources:
   Dashboard:

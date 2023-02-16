@@ -15,7 +15,7 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       RoleName: lambda-myFunction-role
       Description: "The role for lambda function myFunction"
       AssumeRolePolicyDocument:
@@ -23,11 +23,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - lambda.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -37,9 +37,9 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -50,14 +50,14 @@ Resources:
   #
   Function:
     Type: AWS::Lambda::Function
-    Properties: 
+    Properties:
       FunctionName: myFunction
       Description: "The lambda function for function url"
       Runtime: python3.9 # python3.9 , nodejs14.x  ...
       Architectures: # arm64 , x86_64
         - arm64
       PackageType: Zip # Image , Zip
-      Code: 
+      Code:
         # S3Bucket: String
         # S3Key: String
         # S3ObjectVersion: String
@@ -73,35 +73,35 @@ Resources:
       MemorySize: 512 # MB
       Timeout: 60 # seconds
       Role: !GetAtt Role.Arn
-      EphemeralStorage: 
+      EphemeralStorage:
         Size: 512 # MB
-      # Environment: 
-      #   Variables:  
+      # Environment:
+      #   Variables:
       #     key01: value01
-      # TracingConfig: 
+      # TracingConfig:
       #   Mode: Active # Active , PassThrough
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-  
+
   #
   # Lambda - Function URL
   #
   FunctionURL:
     Type: AWS::Lambda::Url
-    Properties: 
+    Properties:
       AuthType: NONE # AWS_IAM | NONE
-      Cors: 
+      Cors:
         AllowCredentials: False
         AllowMethods: # GET | POST | DELETE | *
           - GET
         AllowOrigins: # https://www.example.com ...
-          - '*'
-        # AllowHeaders: 
+          - "*"
+        # AllowHeaders:
         #   - String
-        # ExposeHeaders: 
+        # ExposeHeaders:
         #   - String
         # MaxAge: Integer # Browser can cache to [MaxAge]
       # InvokeMode: String # Not currently supported by AWS Cloudformation

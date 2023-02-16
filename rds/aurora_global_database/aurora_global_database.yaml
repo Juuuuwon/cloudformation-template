@@ -1,4 +1,3 @@
-
 Description: >
   This Cloudformation should place in same region with primary cluster
 
@@ -18,6 +17,6 @@ Resources:
   #
   GlobalCluster:
     Type: AWS::RDS::GlobalCluster
-    Properties: 
+    Properties:
       GlobalClusterIdentifier: !Ref GlobalClusterIdentifier
       SourceDBClusterIdentifier: !Ref SourceDBClusterIdentifier

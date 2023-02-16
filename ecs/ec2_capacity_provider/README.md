@@ -1,5 +1,4 @@
-
-## Capacity Provider 
+## Capacity Provider
 
 Service를 생성할 때 Capacity Provider Strategy를 정의해주는 것을 권장함.
 
@@ -20,8 +19,6 @@ ECS 앞단에 ELB를 붙일 경우 Healthcheck 포인트가 2개이므로 이를
 
 - **ECS Task Definition**의 HealthCheck Command
 
-
-
 ## 작업 순서 주의!!
 
 리소스 **생성** 시에는 아래와 같은 순서로 작업을 진행합니다.
@@ -38,7 +35,6 @@ ECS 앞단에 ELB를 붙일 경우 Healthcheck 포인트가 2개이므로 이를
 
 6. ECS Service 생성
 
-
 리소스 **삭제** 시에는 아래와 같은 순서로 작업을 진행합니다.
 
 1. ECS Service 삭제
@@ -53,8 +49,6 @@ ECS 앞단에 ELB를 붙일 경우 Healthcheck 포인트가 2개이므로 이를
 
 6. ECS Cluster 삭제
 
-
-
 ## Cloudwatch Log Group 주의!!
 
 Cloudwatch Log Group이 이미 생성되어 있는 경우 ecs service 생성에 오류가 발생합니다.
@@ -63,21 +57,19 @@ Cloudwatch Log Group이 이미 생성되어 있는 경우 ecs service 생성에 
 
 기존 Log Group을 삭제하지 못하는 경우, ecs service template을 적절히 수정합니다.
 
-
 ## 인스턴스 수준 지표 모니터링
 
 ECS Cluster에 Container Insight를 활성화하면 클러스터 및 서비스 수준 지표만 수집됩니다.
 
-즉, 인스턴스 수준 지표는 수집되지 않습니다. 따라서, CloudWatch Agent를 Daemon Service로 
+즉, 인스턴스 수준 지표는 수집되지 않습니다. 따라서, CloudWatch Agent를 Daemon Service로
 
 배포하는 작업을 별도로 수행해야합니다.
 
-관련 링크 : 
+관련 링크 :
 
 - https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/deploy-container-insights-ECS-instancelevel.html
 
 - https://ecsworkshop.com/monitoring/container_insights/setup/#enable-instance-level-insights
-
 
 ## ENI 최대 할당량 주의!!
 

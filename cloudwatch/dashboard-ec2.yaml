@@ -2,14 +2,14 @@ Parameters:
   DashboardName:
     Type: String
     Description: "The name of the dashboard"
-  
+
   ASGName:
     Type: String
     Description: "The name of the auto scaling group to monitor"
-  
+
   ALBName:
     Type: String
-    Description: "The substring of ALB arn. ex) app/test-alb/33afb7c04632e599" 
+    Description: "The substring of ALB arn. ex) app/test-alb/33afb7c04632e599"
 
 Resources:
   Dashboard:

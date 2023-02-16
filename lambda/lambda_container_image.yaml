@@ -1,4 +1,3 @@
-
 Parameters:
   ContainerImageURI:
     Type: String
@@ -20,7 +19,7 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       RoleName: lambda-containerFunction-role
       Description: description
       AssumeRolePolicyDocument:
@@ -28,11 +27,11 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - lambda.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -42,10 +41,10 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -56,31 +55,31 @@ Resources:
   #
   Function:
     Type: AWS::Lambda::Function
-    Properties: 
+    Properties:
       FunctionName: containerFunction
-      Description: 'The Lambda Function'
+      Description: "The Lambda Function"
       Architectures: # arm64 , x86_64
         - x86_64
       PackageType: Image # Image , Zip
-      Code: 
+      Code:
         ImageUri: !Ref ContainerImageURI
       # ImageConfig:
-      #   Command: 
+      #   Command:
       #     - String
-      #   EntryPoint: 
+      #   EntryPoint:
       #     - String
       #   WorkingDirectory: String
       MemorySize: 512 # MB
       Timeout: 60 # seconds
       Role: !GetAtt Role.Arn
-      EphemeralStorage: 
+      EphemeralStorage:
         Size: 512 # MB
-      # Environment: 
-      #   Variables:  
+      # Environment:
+      #   Variables:
       #     key01: value01
-      # TracingConfig: 
+      # TracingConfig:
       #   Mode: Active # Active , PassThrough
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

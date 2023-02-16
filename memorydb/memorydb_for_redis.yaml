@@ -1,8 +1,7 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
@@ -27,9 +26,9 @@ Resources:
   #
   MemoryDBParameterGroup:
     Type: AWS::MemoryDB::ParameterGroup
-    Properties: 
+    Properties:
       # Description: String
-      ParameterGroupName: !Sub '${NamePrefix}-memorydb-parametergroup'
+      ParameterGroupName: !Sub "${NamePrefix}-memorydb-parametergroup"
       Family: memorydb_redis6
       # Parameters: Json
 
@@ -38,11 +37,10 @@ Resources:
   #
   MemoryDBSubnetGroup:
     Type: AWS::MemoryDB::SubnetGroup
-    Properties: 
+    Properties:
       # Description: String
-      SubnetGroupName: !Sub '${NamePrefix}-memorydb-subnetgroup'
+      SubnetGroupName: !Sub "${NamePrefix}-memorydb-subnetgroup"
       SubnetIds: !Ref SubnetIds
-
 
   #
   # MemoryDB - Cluster
@@ -50,12 +48,12 @@ Resources:
   MemoryDBCluster:
     Type: AWS::MemoryDB::Cluster
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       ACLName: open-access
       AutoMinorVersionUpgrade: true
-      ClusterName:  !Sub '${NamePrefix}-memorydb-cluster'
+      ClusterName: !Sub "${NamePrefix}-memorydb-cluster"
       # Description: String
-      EngineVersion: '6.2'
+      EngineVersion: "6.2"
       # KmsKeyId: String
       NodeType: db.r6g.large
       NumReplicasPerShard: 2
@@ -67,7 +65,7 @@ Resources:
       TLSEnabled: true
       SnapshotRetentionLimit: 1
       # SnapshotWindow: String
-      # SnapshotArns: 
+      # SnapshotArns:
       #   - String
       Tags:
         - Key: Project

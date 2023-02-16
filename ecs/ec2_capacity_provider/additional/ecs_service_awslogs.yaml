@@ -1,9 +1,8 @@
-
 Parameters:
   ClusterName:
     Type: String
     Description: "The ecs cluster name for running task"
-  
+
   TaskName:
     Type: String
     Description: "The task name for running your application"
@@ -11,7 +10,7 @@ Parameters:
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The security group ids for attached your task"
-  
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "The subnet ids for locate your task"
@@ -40,19 +39,19 @@ Resources:
   #
   TaskExecutionRole:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${TaskName}-execution-role'
+    Properties:
+      RoleName: !Sub "${TaskName}-execution-role"
       Description: !Sub "The task execution role for ${TaskName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -62,9 +61,9 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -75,19 +74,19 @@ Resources:
   #
   TaskRole:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${TaskName}-role'
+    Properties:
+      RoleName: !Sub "${TaskName}-role"
       Description: !Sub "The task role for ${TaskName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -97,9 +96,9 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      # ManagedPolicyArns: 
+      # ManagedPolicyArns:
       #   - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -110,8 +109,8 @@ Resources:
   #
   CloudwatchLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
-      LogGroupName: !Sub '/ecs/application/${TaskName}'
+    Properties:
+      LogGroupName: !Sub "/ecs/application/${TaskName}"
       RetentionInDays: 14
 
   #
@@ -121,7 +120,7 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     UpdateReplacePolicy: Retain
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       Family: !Ref TaskName
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
       TaskRoleArn: !GetAtt TaskRole.Arn
@@ -130,62 +129,65 @@ Resources:
         - EC2
       Cpu: 768
       Memory: 1536
-      # EphemeralStorage: 
+      # EphemeralStorage:
       #   EphemeralStorage
-      # PlacementConstraints: 
+      # PlacementConstraints:
       #   - TaskDefinitionPlacementConstraint
       # ProxyConfiguration: # app mesh
       #   ProxyConfiguration
-      # RuntimePlatform: 
+      # RuntimePlatform:
       #   RuntimePlatform
-      # Volumes: 
+      # Volumes:
       #   - Volume
-      ContainerDefinitions: 
-        - 
-          Name: webapp
-          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/stress:20220927111338'
+      ContainerDefinitions:
+        - Name: webapp
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/stress:20220927111338"
           Cpu: 768
           Memory: 1536
           MemoryReservation: 1536
           Essential: true
           Privileged: false
-          PortMappings: 
+          PortMappings:
             - ContainerPort: 5000
               HostPort: 5000
               Protocol: tcp # tcp | udp
-          HealthCheck: 
-            Command: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5000/healthcheck || exit 1" ]
+          HealthCheck:
+            Command:
+              [
+                "CMD-SHELL",
+                "wget --no-verbose --tries=1 --spider http://localhost:5000/healthcheck || exit 1",
+              ]
             Interval: 15
             Retries: 3
             StartPeriod: 60
             Timeout: 5
-          LogConfiguration: 
+          LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref CloudwatchLogGroup
               awslogs-region: !Ref AWS::Region
-          # FirelensConfiguration: 
+          # FirelensConfiguration:
           #   FirelensConfiguration
-          # EntryPoint: 
+          # EntryPoint:
           #   - String
           # Command: # CMD
           #   - String
-          # Environment: 
+          # Environment:
           #   - KeyValuePair
-          # EnvironmentFiles: 
+          # EnvironmentFiles:
           #   - EnvironmentFile
-          # MountPoints: 
+          # MountPoints:
           #   - MountPoint
-          # RepositoryCredentials: 
+          # RepositoryCredentials:
           #   RepositoryCredentials
-          # Secrets: 
+          # Secrets:
           #   - Secret
           # StartTimeout: Integer
           # StopTimeout: Integer
-          # SystemControls: 
+          # SystemControls:
           #   - SystemControl
           # User: String
-          # VolumesFrom: 
+          # VolumesFrom:
           #   - VolumeFrom
           # WorkingDirectory: String
 
@@ -194,18 +196,18 @@ Resources:
   #
   Service:
     Type: AWS::ECS::Service
-    Properties: 
+    Properties:
       ServiceName: !Ref TaskName
       Cluster: !Ref ClusterName
       TaskDefinition: !Ref TaskDefinition
-      CapacityProviderStrategy: 
+      CapacityProviderStrategy:
         - Base: 0
           CapacityProvider: !Ref CapacityProvider
           Weight: 100
-      DeploymentController: 
+      DeploymentController:
         Type: ECS # ECS | CODE_DEPLOY | EXTERNAL
-      DeploymentConfiguration:  # Only *ECS
-        DeploymentCircuitBreaker: 
+      DeploymentConfiguration: # Only *ECS
+        DeploymentCircuitBreaker:
           Enable: true
           Rollback: true
         MaximumPercent: 200
@@ -214,25 +216,23 @@ Resources:
       EnableECSManagedTags: true
       EnableExecuteCommand: true
       # LaunchType: EC2 # EC2 | EXTERNAL | FARGATE
-      LoadBalancers: 
+      LoadBalancers:
         - ContainerName: webapp
           ContainerPort: 5000
           # LoadBalancerName: !Ref LoadBalancerName
           TargetGroupArn: !Ref TargetGroupArn
       # HealthCheckGracePeriodSeconds: 60
-      NetworkConfiguration: 
-        AwsvpcConfiguration: 
+      NetworkConfiguration:
+        AwsvpcConfiguration:
           AssignPublicIp: DISABLED # DISABLED | ENABLED
           SecurityGroups: !Ref SecurityGroupIds
           Subnets: !Ref SubnetIds
-      # PlacementConstraints: 
+      # PlacementConstraints:
       #   - PlacementConstraint
-      PlacementStrategies: 
-        - 
-          Field: "attribute:ecs.availability-zone"
+      PlacementStrategies:
+        - Field: "attribute:ecs.availability-zone"
           Type: "spread"
-        - 
-          Field: "instanceId"
+        - Field: "instanceId"
           Type: "spread"
       # PlatformVersion: String
       # PropagateTags: String
@@ -246,18 +246,19 @@ Resources:
   #
   ScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties: 
+    Properties:
       MaxCapacity: 60
       MinCapacity: 3
-      ResourceId: !Join ['/', ['service', !Ref ClusterName, !GetAtt Service.Name]]
-      RoleARN: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+      ResourceId:
+        !Join ["/", ["service", !Ref ClusterName, !GetAtt Service.Name]]
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
       ScalableDimension: ecs:service:DesiredCount
-      # ScheduledActions: 
+      # ScheduledActions:
       #   - ScheduledAction
       ServiceNamespace: ecs
-      # SuspendedState: 
+      # SuspendedState:
       #   SuspendedState
-  
+
   #
   # Application Auto Scaling - ScalingPolicy
   #

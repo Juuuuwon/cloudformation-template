@@ -1,9 +1,8 @@
-
 Parameters:
   OriginDomainName:
     Type: String
     Description: "Origin Domain without protocol(http://)"
-  
+
   LambdaFunctionVersionArn:
     Type: String
     Description: "The lambda function arn for lambda@edge, must be specified version"
@@ -24,27 +23,27 @@ Resources:
   #
   CachePolicy:
     Type: AWS::CloudFront::CachePolicy
-    Properties: 
-      CachePolicyConfig: 
+    Properties:
+      CachePolicyConfig:
         Name: example-cache-policy
         # Comment: String
         DefaultTTL: 86400 # default
         MaxTTL: 31536000 # default
         MinTTL: 0 # default
-        ParametersInCacheKeyAndForwardedToOrigin: 
+        ParametersInCacheKeyAndForwardedToOrigin:
           EnableAcceptEncodingBrotli: true
           EnableAcceptEncodingGzip: true
-          CookiesConfig: 
+          CookiesConfig:
             CookieBehavior: none # all | allExcept | none | whitelist
-          #   Cookies: 
+          #   Cookies:
           #     - String
-          HeadersConfig: 
+          HeadersConfig:
             HeaderBehavior: none # none | whitelist
-          #   Headers: 
+          #   Headers:
           #     - String
-          QueryStringsConfig: 
+          QueryStringsConfig:
             QueryStringBehavior: none # all | allExcept | none | whitelist
-          #   QueryStrings: 
+          #   QueryStrings:
           #     - String
 
   #
@@ -52,41 +51,41 @@ Resources:
   #
   OriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
-    Properties: 
-      OriginRequestPolicyConfig: 
+    Properties:
+      OriginRequestPolicyConfig:
         Name: example-origin-request-policy
         # Comment: String
-        CookiesConfig: 
+        CookiesConfig:
           CookieBehavior: none # all | none | whitelist
-        #   Cookies: 
+        #   Cookies:
         #     - String
-        HeadersConfig: 
+        HeadersConfig:
           HeaderBehavior: none # allViewer | allViewerAndWhitelistCloudFront | none | whitelist
-        #   Headers: 
+        #   Headers:
         #     - String
-        QueryStringsConfig: 
+        QueryStringsConfig:
           QueryStringBehavior: all # all | none | whitelist
-        #   QueryStrings: 
+        #   QueryStrings:
         #     - String
 
   #
   # CloudFront - Distribution
   #
   Distribution:
-    Type: 'AWS::CloudFront::Distribution'
+    Type: "AWS::CloudFront::Distribution"
     Properties:
       DistributionConfig:
         Origins:
-        - DomainName: !Ref OriginDomainName
-          Id: CustomOrigin
-          OriginShield: 
-            Enabled: true
-            OriginShieldRegion: !Ref AWS::Region
-          CustomOriginConfig:
-            HTTPPort: '80'
-            HTTPSPort: '443'
-            OriginProtocolPolicy: http-only # http-only | https-only | match-viewer
-        Enabled: 'true'
+          - DomainName: !Ref OriginDomainName
+            Id: CustomOrigin
+            OriginShield:
+              Enabled: true
+              OriginShieldRegion: !Ref AWS::Region
+            CustomOriginConfig:
+              HTTPPort: "80"
+              HTTPSPort: "443"
+              OriginProtocolPolicy: http-only # http-only | https-only | match-viewer
+        Enabled: "true"
         # Comment: Somecomment
         # DefaultRootObject: index.html
         # Logging:
@@ -98,11 +97,11 @@ Resources:
         # - "*.yoursite.example.com"
         DefaultCacheBehavior:
           TargetOriginId: CustomOrigin
-          SmoothStreaming: 'false'
+          SmoothStreaming: "false"
           CachePolicyId: !GetAtt CachePolicy.Id
           OriginRequestPolicyId: !GetAtt OriginRequestPolicy.Id
           ViewerProtocolPolicy: allow-all
-          LambdaFunctionAssociations: 
+          LambdaFunctionAssociations:
             - EventType: origin-response # viewer-request, viewer-response, origin-request, origin-response
               IncludeBody: false
               LambdaFunctionARN: !Ref LambdaFunctionVersionArn
@@ -121,7 +120,7 @@ Resources:
         #     - CV
         # ViewerCertificate:
         #   CloudFrontDefaultCertificate: 'true'
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

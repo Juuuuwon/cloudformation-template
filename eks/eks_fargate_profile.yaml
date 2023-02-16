@@ -1,7 +1,6 @@
-
 Parameters:
   EKSClusterName:
-    Description: 'The cluster name of eks'
+    Description: "The cluster name of eks"
     Type: String
 
   SubnetIds:
@@ -28,19 +27,19 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${FargateProfileName}-fargate-execution-role'
+    Properties:
+      RoleName: !Sub "${FargateProfileName}-fargate-execution-role"
       Description: "The role for fargate profile"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - eks-fargate-pods.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -50,31 +49,30 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-
 
   #
   # EKS - Fargate Profile
   #
   FargateProfile:
     Type: AWS::EKS::FargateProfile
-    Properties: 
+    Properties:
       FargateProfileName: !Ref FargateProfileName
       ClusterName: !Ref EKSClusterName
       PodExecutionRoleArn: !GetAtt Role.Arn
-      Selectors: 
+      Selectors:
         - Namespace: dev
           Labels:
             - Key: eks.amazonaws.com/fargate
-              Value: 'true'
+              Value: "true"
       Subnets: !Ref SubnetIds
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

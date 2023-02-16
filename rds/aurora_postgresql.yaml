@@ -1,8 +1,7 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
@@ -26,30 +25,30 @@ Resources:
   # IAM - Role (for RDS Monitoring)
   #
   MonitoringRole:
-    Type: 'AWS::IAM::Role'
+    Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub '${NamePrefix}-aurora-postgresql-monitoring-role'
+      RoleName: !Sub "${NamePrefix}-aurora-postgresql-monitoring-role"
       ManagedPolicyArns:
-      - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+        - "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
       AssumeRolePolicyDocument:
-        Version: '2008-10-17'
+        Version: "2008-10-17"
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: 'monitoring.rds.amazonaws.com'
-          Action: 'sts:AssumeRole'
-  
+          - Effect: Allow
+            Principal:
+              Service: "monitoring.rds.amazonaws.com"
+            Action: "sts:AssumeRole"
+
   #
   # Secrets Manager - Secret
   #
   MasterUserSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Name: !Sub '${NamePrefix}-aurora-postgresql-cluster/postgres'
-      Description: 'This is secret of rds username and password'
+      Name: !Sub "${NamePrefix}-aurora-postgresql-cluster/postgres"
+      Description: "This is secret of rds username and password"
       GenerateSecretString:
         SecretStringTemplate: '{"username": "postgres"}'
-        GenerateStringKey: 'password'
+        GenerateStringKey: "password"
         ExcludeCharacters: '"@/\'
         PasswordLength: 16
 
@@ -68,22 +67,22 @@ Resources:
   #
   DBClusterParameterGroup:
     Type: AWS::RDS::DBClusterParameterGroup
-    Properties: 
-      Description: 'This is cluster parameter group of aurora-postgresql13'
+    Properties:
+      Description: "This is cluster parameter group of aurora-postgresql13"
       Family: aurora-postgresql13
       Parameters:
         timezone: US/Eastern
-        synchronous_commit: 'on'
+        synchronous_commit: "on"
 
   #
   # RDS - Parameter Group
   #
   DBParameterGroup:
     Type: AWS::RDS::DBParameterGroup
-    Properties: 
-      Description: 'This is parameter group of aurora-postgresql13'
+    Properties:
+      Description: "This is parameter group of aurora-postgresql13"
       Family: aurora-postgresql13
-      # Parameters: 
+      # Parameters:
       #   Key : Value
 
   #
@@ -91,9 +90,9 @@ Resources:
   #
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
-    Properties: 
-      DBSubnetGroupDescription: 'This is subnet group of example'
-      DBSubnetGroupName: !Sub '${NamePrefix}-aurora-postgresql-subnetgroup'
+    Properties:
+      DBSubnetGroupDescription: "This is subnet group of example"
+      DBSubnetGroupName: !Sub "${NamePrefix}-aurora-postgresql-subnetgroup"
       SubnetIds: !Ref SubnetIds
 
   #
@@ -102,11 +101,11 @@ Resources:
   DBCluster:
     Type: AWS::RDS::DBCluster
     DeletionPolicy: Delete
-    Properties: 
-      DBClusterIdentifier: !Sub '${NamePrefix}-aurora-postgresql-cluster'
+    Properties:
+      DBClusterIdentifier: !Sub "${NamePrefix}-aurora-postgresql-cluster"
       Engine: aurora-postgresql # aurora (mysql5.6) , aurora-mysql (mysql5.7) , aurora-postgresql
       EngineMode: provisioned # provisioned , serverless , parallelquery , global , multimaster
-      EngineVersion: '13.6'
+      EngineVersion: "13.6"
       DBClusterParameterGroupName: !Ref DBClusterParameterGroup
       DBSubnetGroupName: !Ref DBSubnetGroup
       DatabaseName: exampledb
@@ -116,13 +115,29 @@ Resources:
       EnableCloudwatchLogsExports: # postgresql
         - postgresql
       EnableIAMDatabaseAuthentication: true
-      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref MasterUserSecret, ':SecretString:username}}' ]]
-      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref MasterUserSecret, ':SecretString:password}}' ]]
+      MasterUsername:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref MasterUserSecret,
+            ":SecretString:username}}",
+          ],
+        ]
+      MasterUserPassword:
+        !Join [
+          "",
+          [
+            "{{resolve:secretsmanager:",
+            !Ref MasterUserSecret,
+            ":SecretString:password}}",
+          ],
+        ]
       Port: 5432
       StorageEncrypted: true
       # KmsKeyId: String
       VpcSecurityGroupIds: !Ref SecurityGroupIds
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -134,9 +149,9 @@ Resources:
   DBInstance1:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub '${NamePrefix}-aurora-postgresql-instance-1'
+      DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-postgresql-instance-1"
       Engine: aurora-postgresql
       # EngineVersion: '13.6'
       DBInstanceClass: db.r6g.large
@@ -144,27 +159,27 @@ Resources:
       PubliclyAccessible: false
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
       MonitoringRoleArn: !GetAtt MonitoringRole.Arn
-      DeleteAutomatedBackups: false    
+      DeleteAutomatedBackups: false
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
       EnablePerformanceInsights: true # it does support aurora postgresql
       # PerformanceInsightsKMSKeyId: String
       PerformanceInsightsRetentionPeriod: 7 # 7 , 731 (days)
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-  
+
   #
   # RDS - DBInstance (second)
   #
   DBInstance2:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub '${NamePrefix}-aurora-postgresql-instance-2'
+      DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-postgresql-instance-2"
       Engine: aurora-postgresql
       # EngineVersion: '13.6'
       DBInstanceClass: db.r6g.large
@@ -172,13 +187,13 @@ Resources:
       PubliclyAccessible: false
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
       MonitoringRoleArn: !GetAtt MonitoringRole.Arn
-      DeleteAutomatedBackups: false    
+      DeleteAutomatedBackups: false
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
       EnablePerformanceInsights: true # it does support aurora postgresql
       # PerformanceInsightsKMSKeyId: String
       PerformanceInsightsRetentionPeriod: 7 # 7 , 731 (days)
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner

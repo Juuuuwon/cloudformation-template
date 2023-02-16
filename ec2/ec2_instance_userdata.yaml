@@ -1,18 +1,17 @@
-
 Parameters:
   SubnetId:
     Type: AWS::EC2::Subnet::Id
 
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
-  
+
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
-  
+
   AMI:
-    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
-    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
-  
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
@@ -34,19 +33,19 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${InstanceName}-role'
-      Description: !Sub 'The role of ec2 instance, ${InstanceName}'
+    Properties:
+      RoleName: !Sub "${InstanceName}-role"
+      Description: !Sub "The role of ec2 instance, ${InstanceName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ec2.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -56,25 +55,25 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-  
+
   #
   # IAM Instance Profile
   #
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
-    Properties: 
+    Properties:
       # InstanceProfileName: example-ec2-instance-profile
       Path: /
-      Roles: 
+      Roles:
         - !Ref Role
 
   #
@@ -82,11 +81,11 @@ Resources:
   #
   Instance:
     Type: AWS::EC2::Instance
-    Properties: 
+    Properties:
       InstanceType: t3.small
-      BlockDeviceMappings: 
+      BlockDeviceMappings:
         - DeviceName: /dev/xvda
-          Ebs: 
+          Ebs:
             DeleteOnTermination: true
             Encrypted: true
             # KmsKeyId: String
@@ -101,7 +100,7 @@ Resources:
       SubnetId: !Ref SubnetId
       SecurityGroupIds: !Ref SecurityGroupIds
       PropagateTagsToVolumeOnCreation: true
-      Tags: 
+      Tags:
         - Key: Name
           Value: !Ref InstanceName
         - Key: Project

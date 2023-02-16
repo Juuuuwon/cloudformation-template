@@ -1,9 +1,8 @@
-
 Parameters:
   ClusterName:
-    Description: 'The cluster name of eks'
+    Description: "The cluster name of eks"
     Type: String
-    
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "The Subnet Ids for launched instances"
@@ -15,7 +14,7 @@ Parameters:
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Description: "The Keypair for launched instances"
-  
+
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
@@ -36,19 +35,19 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${NodeGroupName}-role'
+    Properties:
+      RoleName: !Sub "${NodeGroupName}-role"
       # Description: description
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ec2.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -58,11 +57,11 @@ Resources:
       #             - 'dynamodb:Query'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
-        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy        
-      Tags: 
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -73,12 +72,12 @@ Resources:
   #
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
-    Properties: 
+    Properties:
       # LaunchTemplateName: example-eks-nodegroup-lt
-      LaunchTemplateData: 
-        BlockDeviceMappings: 
+      LaunchTemplateData:
+        BlockDeviceMappings:
           - DeviceName: /dev/xvda
-            Ebs: 
+            Ebs:
               DeleteOnTermination: true
               VolumeType: gp3
               VolumeSize: 20
@@ -89,11 +88,11 @@ Resources:
         # InstanceInitiatedShutdownBehavior: terminate # stop , terminate
         InstanceType: c5.xlarge
         KeyName: !Ref KeyPair
-        # Monitoring: 
+        # Monitoring:
         SecurityGroupIds: !Ref SecurityGroupIds
-        TagSpecifications: 
+        TagSpecifications:
           - ResourceType: instance # instance, volume
-            Tags: 
+            Tags:
               - Key: Name
                 Value: !Ref NodeGroupName
               - Key: Project
@@ -101,7 +100,7 @@ Resources:
               - Key: Owner
                 Value: !Ref Owner
           - ResourceType: volume # instance, volume
-            Tags: 
+            Tags:
               - Key: Name
                 Value: !Ref NodeGroupName
               - Key: Project
@@ -114,23 +113,23 @@ Resources:
   #
   NodeGroup:
     Type: AWS::EKS::Nodegroup
-    Properties: 
+    Properties:
       NodegroupName: !Ref NodeGroupName
       AmiType: BOTTLEROCKET_x86_64 # AL2_ARM_64 | AL2_x86_64 | AL2_x86_64_GPU | BOTTLEROCKET_ARM_64 | BOTTLEROCKET_x86_64 | CUSTOM
       CapacityType: ON_DEMAND # ON_DEMAND | SPOT
       ClusterName: !Ref ClusterName
       ForceUpdateEnabled: false
-      LaunchTemplate: 
+      LaunchTemplate:
         Id: !Ref LaunchTemplate
         # Name: String
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       NodeRole: !GetAtt Role.Arn
-      ScalingConfig: 
+      ScalingConfig:
         DesiredSize: 3 # It must be defined at first time. and after that it is recommended removing.
         MinSize: 3
         MaxSize: 20
       Subnets: !Ref SubnetIds
-      UpdateConfig: 
+      UpdateConfig:
         # MaxUnavailable: 100
         MaxUnavailablePercentage: 100
       Tags:
@@ -138,7 +137,7 @@ Resources:
         Owner: !Ref Owner
       # Labels:
       #   management: addon
-      # Taints: 
+      # Taints:
       #   - Effect: NO_SCHEDULE # NO_EXECUTE | NO_SCHEDULE | PREFER_NO_SCHEDULE
       #     Key: management
       #     Value: addon

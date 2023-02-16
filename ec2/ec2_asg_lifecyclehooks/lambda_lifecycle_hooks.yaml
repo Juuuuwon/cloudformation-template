@@ -1,4 +1,3 @@
-
 Parameters:
   AutoScalingGroupName:
     Type: String
@@ -20,7 +19,7 @@ Resources:
   #
   Role:
     Type: AWS::IAM::Role
-    Properties: 
+    Properties:
       RoleName: lambda-bootstrap-function-role
       Description: "The role for function, lambda-bootstrap-function"
       AssumeRolePolicyDocument:
@@ -28,22 +27,22 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - lambda.amazonaws.com
-      Policies: 
+      Policies:
         - PolicyName: ec2-asg-lifecyclehook
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - 'autoscaling:CompleteLifecycleAction'
-                Resource: !Sub 'arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AutoScalingGroupName}'
-      ManagedPolicyArns: 
+                  - "autoscaling:CompleteLifecycleAction"
+                Resource: !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AutoScalingGroupName}"
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -54,20 +53,20 @@ Resources:
   #
   Function:
     Type: AWS::Lambda::Function
-    Properties: 
+    Properties:
       FunctionName: lambda-bootstrap-function
       Description: "The Lambda Function for bootstrap on ec2 instance started"
       Runtime: python3.9 # python3.9 , nodejs14.x  ...
       Architectures: # arm64 , x86_64
         - arm64
       PackageType: Zip # Image , Zip
-      Code: 
+      Code:
         # S3Bucket: String
         # S3Key: String
         # S3ObjectVersion: String
         ZipFile: >
           import boto3
-          
+
           def handler(event, context):
               print("== init bootstrap function ==")
               print(event)
@@ -84,14 +83,14 @@ Resources:
       MemorySize: 512 # MB
       Timeout: 60 # seconds
       Role: !GetAtt Role.Arn
-      EphemeralStorage: 
+      EphemeralStorage:
         Size: 512 # MB
-      # Environment: 
-      #   Variables:  
+      # Environment:
+      #   Variables:
       #     key01: value01
-      # TracingConfig: 
+      # TracingConfig:
       #   Mode: Active # Active , PassThrough
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -102,7 +101,7 @@ Resources:
   #
   EventBridgeRule:
     Type: AWS::Events::Rule
-    Properties: 
+    Properties:
       Name: !Sub "${AutoScalingGroupName}-lifecyclehook-InstanceLaunch"
       Description: !Sub "Trigger from Instance-launch on ${AutoScalingGroupName}"
       State: ENABLED # DISABLED | ENABLED
@@ -115,17 +114,17 @@ Resources:
             "AutoScalingGroupName": ["${AutoScalingGroupName}"]
           }
         }
-      Targets: 
+      Targets:
         - Arn: !GetAtt Function.Arn
           Id: !Ref Function
-  
+
   #
   # Lambda Permissions
   #
-  PermissionForEventsToInvokeLambda:   
+  PermissionForEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
-    Properties: 
+    Properties:
       FunctionName: !Ref Function
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt EventBridgeRule.Arn   
+      SourceArn: !GetAtt EventBridgeRule.Arn

@@ -1,4 +1,3 @@
-
 Parameters:
   SourceRepository:
     Type: String
@@ -13,7 +12,7 @@ Resources:
   # ECR - Replication Configuration
   #
   RegistryPolicy:
-    Type: 'AWS::ECR::RegistryPolicy'
+    Type: "AWS::ECR::RegistryPolicy"
     Properties:
       PolicyText:
         Version: 2012-10-17
@@ -21,8 +20,8 @@ Resources:
           - Sid: AllowReplicationFromOtherAccount
             Effect: Allow
             Principal:
-              AWS: !Sub 'arn:aws:iam::${SourceAccountId}:root'
+              AWS: !Sub "arn:aws:iam::${SourceAccountId}:root"
             Action:
-              - 'ecr:CreateRepository'
-              - 'ecr:ReplicateImage'
-            Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${SourceRepository}'
+              - "ecr:CreateRepository"
+              - "ecr:ReplicateImage"
+            Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${SourceRepository}"

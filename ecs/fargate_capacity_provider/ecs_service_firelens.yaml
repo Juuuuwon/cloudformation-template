@@ -1,17 +1,16 @@
-
 Parameters:
   ClusterName:
     Type: String
     Description: "The ecs cluster name for running task"
-  
+
   TaskName:
     Type: String
     Description: "The task name for running your application"
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The security group ids for attached your task"
-  
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "The subnet ids for locate your task"
@@ -36,19 +35,19 @@ Resources:
   #
   TaskExecutionRole:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${TaskName}-execution-role'
+    Properties:
+      RoleName: !Sub "${TaskName}-execution-role"
       Description: !Sub "The task execution role for ${TaskName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
-      # Policies: 
+      # Policies:
       #   - PolicyName: dynamodb-query
       #     PolicyDocument:
       #       Version: "2012-10-17"
@@ -58,9 +57,9 @@ Resources:
       #             - 'logs:CreateLogGroup'
       #             - 'dynamodb:Scan'
       #           Resource: '*'
-      ManagedPolicyArns: 
+      ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -71,33 +70,33 @@ Resources:
   #
   TaskRole:
     Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Sub '${TaskName}-role'
+    Properties:
+      RoleName: !Sub "${TaskName}-role"
       Description: !Sub "The task role for ${TaskName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Action:
-              - 'sts:AssumeRole'
+              - "sts:AssumeRole"
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
-      Policies: 
+      Policies:
         - PolicyName: Firelens-CloudwatchLogs
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
-                  - 'logs:CreateLogGroup'
-                  - 'logs:CreateLogStream'
-                  - 'logs:DescribeLogStreams'
-                  - 'logs:PutLogEvents'
-                Resource: '*'
-      # ManagedPolicyArns: 
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DescribeLogStreams"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+      # ManagedPolicyArns:
       #   - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -108,14 +107,14 @@ Resources:
   #
   FirelensLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
-      LogGroupName: !Sub '/aws/ecs/containerinsights/${ClusterName}/${TaskName}/firelens'
-      RetentionInDays: 14    
+    Properties:
+      LogGroupName: !Sub "/aws/ecs/containerinsights/${ClusterName}/${TaskName}/firelens"
+      RetentionInDays: 14
 
   ApplicationLogGroup:
     Type: AWS::Logs::LogGroup
-    Properties: 
-      LogGroupName: !Sub '/aws/ecs/containerinsights/${ClusterName}/${TaskName}/application'
+    Properties:
+      LogGroupName: !Sub "/aws/ecs/containerinsights/${ClusterName}/${TaskName}/application"
       RetentionInDays: 14
 
   #
@@ -124,7 +123,7 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     UpdateReplacePolicy: Retain
-    Properties: 
+    Properties:
       Family: !Ref TaskName
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
       TaskRoleArn: !GetAtt TaskRole.Arn
@@ -133,102 +132,103 @@ Resources:
         - EC2
       Cpu: 1024
       Memory: 2048
-      # EphemeralStorage: 
+      # EphemeralStorage:
       #   EphemeralStorage
-      # PlacementConstraints: 
+      # PlacementConstraints:
       #   - TaskDefinitionPlacementConstraint
       # ProxyConfiguration: # app mesh
       #   ProxyConfiguration
-      # RuntimePlatform: 
+      # RuntimePlatform:
       #   RuntimePlatform
-      # Volumes: 
+      # Volumes:
       #   - Volume
-      ContainerDefinitions: 
-        - 
-          Name: log_router
-          Image: !Sub '906394416424.dkr.ecr.${AWS::Region}.amazonaws.com/aws-for-fluent-bit:stable'
+      ContainerDefinitions:
+        - Name: log_router
+          Image: !Sub "906394416424.dkr.ecr.${AWS::Region}.amazonaws.com/aws-for-fluent-bit:stable"
           Cpu: 512
           Memory: 1024
           MemoryReservation: 1024
           Essential: true
-          LogConfiguration: 
+          LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref FirelensLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: firelens
-          FirelensConfiguration: 
+          FirelensConfiguration:
             Type: fluentbit
-            Options: 
-              'enable-ecs-log-metadata': true
-        - 
-          Name: webapp
-          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/stress:20220927111338'
+            Options:
+              "enable-ecs-log-metadata": true
+        - Name: webapp
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/stress:20220927111338"
           Cpu: 512
           Memory: 1024
           MemoryReservation: 1024
           Essential: true
           Privileged: false
-          PortMappings: 
+          PortMappings:
             - ContainerPort: 5000
               HostPort: 5000
               Protocol: tcp # tcp | udp
-          HealthCheck: 
-            Command: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5000/healthcheck || exit 1" ]
+          HealthCheck:
+            Command:
+              [
+                "CMD-SHELL",
+                "wget --no-verbose --tries=1 --spider http://localhost:5000/healthcheck || exit 1",
+              ]
             Interval: 15
             Retries: 3
             StartPeriod: 60
             Timeout: 5
-          LogConfiguration: 
+          LogConfiguration:
             LogDriver: awsfirelens
             Options:
               Name: cloudwatch
               region: !Ref AWS::Region
               log_group_name: !Ref ApplicationLogGroup
               log_stream_name: "$(ecs_task_id)"
-          # FirelensConfiguration: 
+          # FirelensConfiguration:
           #   FirelensConfiguration
-          # EntryPoint: 
+          # EntryPoint:
           #   - String
           # Command: # CMD
           #   - String
-          # Environment: 
+          # Environment:
           #   - KeyValuePair
-          # EnvironmentFiles: 
+          # EnvironmentFiles:
           #   - EnvironmentFile
-          # MountPoints: 
+          # MountPoints:
           #   - MountPoint
-          # RepositoryCredentials: 
+          # RepositoryCredentials:
           #   RepositoryCredentials
-          # Secrets: 
+          # Secrets:
           #   - Secret
           # StartTimeout: Integer
           # StopTimeout: Integer
-          # SystemControls: 
+          # SystemControls:
           #   - SystemControl
           # User: String
-          # VolumesFrom: 
+          # VolumesFrom:
           #   - VolumeFrom
           # WorkingDirectory: String
-
 
   #
   # ECS -Service
   #
   Service:
     Type: AWS::ECS::Service
-    Properties: 
+    Properties:
       ServiceName: !Ref TaskName
       Cluster: !Ref ClusterName
       TaskDefinition: !Ref TaskDefinition
-      CapacityProviderStrategy: 
+      CapacityProviderStrategy:
         - Base: 0
           CapacityProvider: FARGATE
           Weight: 100
-      DeploymentController: 
+      DeploymentController:
         Type: ECS # ECS | CODE_DEPLOY | EXTERNAL
-      DeploymentConfiguration:  # Only *ECS
-        DeploymentCircuitBreaker: 
+      DeploymentConfiguration: # Only *ECS
+        DeploymentCircuitBreaker:
           Enable: true
           Rollback: true
         MaximumPercent: 200
@@ -237,20 +237,20 @@ Resources:
       EnableECSManagedTags: true
       EnableExecuteCommand: true
       # LaunchType: FARGATE # EC2 | EXTERNAL | FARGATE
-      LoadBalancers: 
+      LoadBalancers:
         - ContainerName: webapp
           ContainerPort: 5000
           # LoadBalancerName: !Ref LoadBalancerName
           TargetGroupArn: !Ref TargetGroupArn
       # HealthCheckGracePeriodSeconds: 60
-      NetworkConfiguration: 
-        AwsvpcConfiguration: 
+      NetworkConfiguration:
+        AwsvpcConfiguration:
           AssignPublicIp: DISABLED # DISABLED | ENABLED
           SecurityGroups: !Ref SecurityGroupIds
           Subnets: !Ref SubnetIds
-      # PlacementConstraints: 
+      # PlacementConstraints:
       #   - PlacementConstraint
-      # PlacementStrategies: 
+      # PlacementStrategies:
       #   - PlacementStrategy
       # PlatformVersion: String
       # PropagateTags: String
@@ -258,24 +258,25 @@ Resources:
       # SchedulingStrategy: String
       # ServiceRegistries: # CloudMap
       #   - ServiceRegistry
-      
+
   #
   # Application Auto Scaling - Scalable Target
   #
   ScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties: 
+    Properties:
       MaxCapacity: 60
       MinCapacity: 3
-      ResourceId: !Join ['/', ['service', !Ref ClusterName, !GetAtt Service.Name]]
-      RoleARN: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+      ResourceId:
+        !Join ["/", ["service", !Ref ClusterName, !GetAtt Service.Name]]
+      RoleARN: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"
       ScalableDimension: ecs:service:DesiredCount
-      # ScheduledActions: 
+      # ScheduledActions:
       #   - ScheduledAction
       ServiceNamespace: ecs
-      # SuspendedState: 
+      # SuspendedState:
       #   SuspendedState
-  
+
   #
   # Application Auto Scaling - ScalingPolicy
   #

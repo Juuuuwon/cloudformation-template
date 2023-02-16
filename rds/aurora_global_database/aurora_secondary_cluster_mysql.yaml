@@ -1,8 +1,7 @@
-
 Parameters:
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
-  
+
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
@@ -30,26 +29,26 @@ Resources:
   # IAM - Role (for RDS Monitoring)
   #
   MonitoringRole:
-    Type: 'AWS::IAM::Role'
+    Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub '${NamePrefix}-aurora-mysql-monitoring-role'
+      RoleName: !Sub "${NamePrefix}-aurora-mysql-monitoring-role"
       ManagedPolicyArns:
-      - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+        - "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
       AssumeRolePolicyDocument:
-        Version: '2008-10-17'
+        Version: "2008-10-17"
         Statement:
-        - Effect: Allow
-          Principal:
-            Service: 'monitoring.rds.amazonaws.com'
-          Action: 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              Service: "monitoring.rds.amazonaws.com"
+            Action: "sts:AssumeRole"
 
   #
   # RDS - Cluster Parameter Group
   #
   DBClusterParameterGroup:
     Type: AWS::RDS::DBClusterParameterGroup
-    Properties: 
-      Description: 'This is cluster parameter group of aurora-mysql5.7'
+    Properties:
+      Description: "This is cluster parameter group of aurora-mysql5.7"
       Family: aurora-mysql5.7
       Parameters:
         time_zone: US/Eastern
@@ -60,10 +59,10 @@ Resources:
   #
   DBParameterGroup:
     Type: AWS::RDS::DBParameterGroup
-    Properties: 
-      Description: 'This is parameter group of aurora-mysql5.7'
+    Properties:
+      Description: "This is parameter group of aurora-mysql5.7"
       Family: aurora-mysql5.7
-      # Parameters: 
+      # Parameters:
       #   Key : Value
 
   #
@@ -71,9 +70,9 @@ Resources:
   #
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
-    Properties: 
-      DBSubnetGroupDescription: 'This is subnet group of example'
-      DBSubnetGroupName: !Sub '${NamePrefix}-aurora-mysql-subnetgroup'
+    Properties:
+      DBSubnetGroupDescription: "This is subnet group of example"
+      DBSubnetGroupName: !Sub "${NamePrefix}-aurora-mysql-subnetgroup"
       SubnetIds: !Ref SubnetIds
 
   #
@@ -82,8 +81,8 @@ Resources:
   DBCluster:
     Type: AWS::RDS::DBCluster
     DeletionPolicy: Delete
-    Properties: 
-      DBClusterIdentifier: !Sub '${NamePrefix}-aurora-mysql-cluster'
+    Properties:
+      DBClusterIdentifier: !Sub "${NamePrefix}-aurora-mysql-cluster"
       GlobalClusterIdentifier: !Ref GlobalClusterIdentifier
       DBClusterParameterGroupName: !Ref DBClusterParameterGroup
       DBSubnetGroupName: !Ref DBSubnetGroup
@@ -106,10 +105,10 @@ Resources:
       # PreferredBackupWindow: String
       # PreferredMaintenanceWindow: String
       StorageEncrypted: true
-      KmsKeyId: 'alias/aws/rds'
+      KmsKeyId: "alias/aws/rds"
       VpcSecurityGroupIds: !Ref SecurityGroupIds
       # DatabaseName: exampledb
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -121,9 +120,9 @@ Resources:
   DBInstance1:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub '${NamePrefix}-aurora-mysql-instance-1'
+      DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-mysql-instance-1"
       Engine: aurora-mysql
       # EngineVersion: 5.7.mysql_aurora.2.10.2
       DBInstanceClass: db.r6g.large
@@ -131,24 +130,24 @@ Resources:
       PubliclyAccessible: false
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
       MonitoringRoleArn: !GetAtt MonitoringRole.Arn
-      DeleteAutomatedBackups: false    
+      DeleteAutomatedBackups: false
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-      
+
   #
   # RDS - DBInstance (second)
   #
   DBInstance2:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
-    Properties: 
+    Properties:
       DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub '${NamePrefix}-aurora-mysql-instance-2'
+      DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-mysql-instance-2"
       Engine: aurora-mysql
       # EngineVersion: 5.7.mysql_aurora.2.10.2
       DBInstanceClass: db.r6g.large
@@ -156,10 +155,10 @@ Resources:
       PubliclyAccessible: false
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
       MonitoringRoleArn: !GetAtt MonitoringRole.Arn
-      DeleteAutomatedBackups: false    
+      DeleteAutomatedBackups: false
       AllowMajorVersionUpgrade: true
       AutoMinorVersionUpgrade: true
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
