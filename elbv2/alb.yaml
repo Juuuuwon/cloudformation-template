@@ -1,16 +1,15 @@
-
 Parameters:
   ALBName:
     Type: String
     Description: "The name for the application load balancer"
-  
+
   ALBScheme:
     Type: String
     Description: "Scheme of the ALB"
     AllowedValues:
       - "internal"
       - "internet-facing"
-  
+
   ALBAccessLogEnable:
     Type: String
     Description: "Whether enable access log or not"
@@ -48,7 +47,7 @@ Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: "The vpc id for application load balancer"
-  
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "The subnet ids for application load balancer"
@@ -56,7 +55,7 @@ Parameters:
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The security group ids for application load balancer"
-  
+
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
@@ -68,13 +67,12 @@ Parameters:
     Default: TeamKorea
 
 Conditions:
-  EnableALBAccessLog:
-    !Equals [!Ref ALBAccessLogEnable, "true"]
+  EnableALBAccessLog: !Equals [!Ref ALBAccessLogEnable, "true"]
 
-Metadata: 
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
-      - Label: 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
           default: "VPC tag configuration"
         Parameters:
           - Project
@@ -102,7 +100,7 @@ Resources:
   #
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties: 
+    Properties:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 15
       HealthCheckPath: !Ref HealthCheckPath
@@ -116,12 +114,12 @@ Resources:
       Port: !Ref TargetPort
       Protocol: HTTP # HTTP , HTTPS
       ProtocolVersion: HTTP1 # GRPC , HTTP1 , HTTP2
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-      TargetGroupAttributes: 
+      TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
           Value: 30
       TargetType: !Ref TargetType # instance , ip , lambda , alb
@@ -132,44 +130,44 @@ Resources:
   #
   ApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties: 
+    Properties:
       Name: !Ref ALBName
       Type: application # application , network , gateway
       Scheme: !Ref ALBScheme # internal , internet-facing
       IpAddressType: ipv4 # ipv4 , ipv6
-      LoadBalancerAttributes: 
+      LoadBalancerAttributes:
         - Key: routing.http2.enabled
           Value: true
         - Key: access_logs.s3.enabled
           Value: !Ref ALBAccessLogEnable
         - "Fn::If":
-          - EnableALBAccessLog
-          - Key: access_logs.s3.bucket
-            Value: !Ref ALBAccessLogBucket
-          - !Ref "AWS::NoValue"
+            - EnableALBAccessLog
+            - Key: access_logs.s3.bucket
+              Value: !Ref ALBAccessLogBucket
+            - !Ref "AWS::NoValue"
       SecurityGroups: !Ref SecurityGroupIds
       Subnets: !Ref SubnetIds
-      Tags: 
+      Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-      
+
   #
   # ELBv2 - Listener
   #
   ApplicationLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties: 
-      # Certificates: 
+    Properties:
+      # Certificates:
       #   - CertificateArn: String
       # SslPolicy: String
-      DefaultActions: 
+      DefaultActions:
         - Type: fixed-response
-          FixedResponseConfig: 
+          FixedResponseConfig:
             ContentType: text/plain
             MessageBody: "Content not found"
-            StatusCode: '404'
+            StatusCode: "404"
       LoadBalancerArn: !Ref ApplicationLoadBalancer
       Port: 80
       Protocol: HTTP # GENEVE , HTTP , HTTPS , TCP , TCP_UDP , TLS , UDP
@@ -178,13 +176,13 @@ Resources:
     Properties:
       Actions:
         - Type: fixed-response
-          FixedResponseConfig: 
+          FixedResponseConfig:
             ContentType: text/plain
             MessageBody: "Content not found"
-            StatusCode: '404'
+            StatusCode: "404"
       Conditions:
         - Field: path-pattern
-          PathPatternConfig: 
+          PathPatternConfig:
             Values:
               - /health
               - /healthcheck
@@ -198,7 +196,7 @@ Resources:
           TargetGroupArn: !Ref TargetGroup
       Conditions:
         - Field: path-pattern
-          PathPatternConfig: 
+          PathPatternConfig:
             Values:
               - /*
       ListenerArn: !Ref ApplicationLoadBalancerListener
