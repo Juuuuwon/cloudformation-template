@@ -1,4 +1,8 @@
 Parameters:
+  EFSName:
+    Type: String
+    Description: "The name for the EFS"
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "The Subnet Ids for efs network interfaces"
@@ -6,6 +10,14 @@ Parameters:
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The Security Group Ids for efs network interfaces"
+
+  SubnetCount:
+    Type: Number
+    Description: "Subnet, AZ Count"
+    AllowedValues:
+      - 2
+      - 3
+    Default: 2
 
   Project:
     Type: String
@@ -17,12 +29,33 @@ Parameters:
     Description: "The team name for owned this resources"
     Default: TeamKorea
 
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "EFS Configuration"
+        Parameters:
+          - EFSName
+          - SecurityGroupIds
+          - SubnetIds
+          - SubnetCount
+      - Label:
+          default: "Tag configuration"
+        Parameters:
+          - Project
+          - Owner
+
+Conditions:
+  ThirdSubnet: !Equals [!Ref SubnetCount, 3]
+
 Resources:
   #
   # EFS - FileSystem
   #
   FileSystem:
     Type: AWS::EFS::FileSystem
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Delete
     Properties:
       BackupPolicy:
         Status: ENABLED
@@ -34,7 +67,7 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
         - Key: Name
-          Value: Unicorn-efs
+          Value: !Ref EFSName
       LifecyclePolicies:
         - TransitionToIA: AFTER_30_DAYS # AFTER_7_DAYS , AFTER_14_DAYS , AFTER_30_DAYS , AFTER_60_DAYS , AFTER_90_DAYS
         - TransitionToPrimaryStorageClass: AFTER_1_ACCESS
@@ -63,6 +96,7 @@ Resources:
 
   MountTargetC:
     Type: AWS::EFS::MountTarget
+    Condition: ThirdSubnet
     Properties:
       FileSystemId: !Ref FileSystem
       # IpAddress: String
