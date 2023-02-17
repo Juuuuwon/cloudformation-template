@@ -15,11 +15,29 @@ Parameters:
     Description: "The project name for provisioned this resources"
     Default: Unicorn.Rental
 
-  NamePrefix:
+  CacheName:
     Type: String
     Description: "The prefix of resource's Name tag"
     Default: Unicorn
 
+  CacheNodeType:
+    Type: String
+    Description: "Elasticache node size"
+    Default: cache.m6g.large
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          Default: "Elasticache config"
+        Parameters:
+          - CacheName
+          - CacheNodeType
+          - SecurityGroupIds
+          - SubnetIds
+          - Project
+          - Owner
+          
 Resources:
   #
   # Cloudwatch Logs - Log Group
@@ -27,7 +45,7 @@ Resources:
   ElasticacheLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/elasticache/${NamePrefix}-redis"
+      LogGroupName: !Sub "/elasticache/${CacheName}-redis"
       RetentionInDays: 7 # days
 
   #
@@ -49,7 +67,7 @@ Resources:
   ElasticacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
-      CacheSubnetGroupName: !Sub "${NamePrefix}-redis-subnetgroup"
+      CacheSubnetGroupName: !Sub "${CacheName}-redis-subnetgroup"
       Description: "This is redis subnet group"
       SubnetIds: !Ref SubnetIds
 
@@ -58,13 +76,14 @@ Resources:
   #
   ElasticacheReplicationGroup:
     Type: AWS::ElastiCache::ReplicationGroup
+    UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
-      ReplicationGroupId: !Sub "${NamePrefix}-redis"
+      ReplicationGroupId: !Sub "${CacheName}"
       ReplicationGroupDescription: This is Elasticache Redis (cluster mode disabled)
       Engine: redis # memcached | redis
       EngineVersion: "6.2" # aws elasticache describe-cache-engine-versions
-      CacheNodeType: cache.m6g.large
+      CacheNodeType: !Ref CacheNodeType
       NumNodeGroups: 1 # shard number
       ReplicasPerNodeGroup: 2
       Port: 6379
