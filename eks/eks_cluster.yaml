@@ -21,6 +21,27 @@ Parameters:
     Type: String
     Description: "The name of eks cluster"
 
+  KubernetesVersion:
+    Type: String
+    Description: "Kubernetes version for EKS"
+    Default: "1.24"
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "EKS Configuration"
+        Parameters:
+          - ClusterName
+          - KubernetesVersion
+          - SecurityGroupIds
+          - SubnetIds
+      - Label:
+          default: "Tag Configuration"
+        Parameters:
+          - Project
+          - Owner
+
 Resources:
   #
   # IAM Role (For EKS Cluster)
@@ -95,7 +116,7 @@ Resources:
     Type: AWS::EKS::Cluster
     Properties:
       Name: !Ref ClusterName
-      Version: "1.24"
+      Version: !Ref KubernetesVersion
       RoleArn: !GetAtt Role.Arn
       EncryptionConfig:
         - Provider:
