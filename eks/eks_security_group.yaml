@@ -200,7 +200,7 @@ Resources:
       IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
       FromPort: 53
       ToPort: 53
-  
+
   AppSecurityGroupEgressCluster:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -211,7 +211,7 @@ Resources:
       IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
       FromPort: 443
       ToPort: 443
-  
+
   #
   # RDS security group
   #
@@ -291,7 +291,7 @@ Resources:
       IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
       FromPort: 1024
       ToPort: 65535
-  
+
   ClusterSecurityGroupEgressAppHTTPS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -302,7 +302,7 @@ Resources:
       IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
       FromPort: 443
       ToPort: 443
-  
+
   #
   # Bastion security group
   #

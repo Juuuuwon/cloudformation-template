@@ -37,7 +37,7 @@ Metadata:
           - SubnetIds
           - Project
           - Owner
-          
+
 Resources:
   #
   # Cloudwatch Logs - Log Group

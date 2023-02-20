@@ -114,7 +114,6 @@ Resources:
       FromPort: !Ref ApplicationPort
       ToPort: !Ref ApplicationPort
 
-
   # AppSecurityGroupIngressBastion:
   #   Type: AWS::EC2::SecurityGroupIngress
   #   Properties:
