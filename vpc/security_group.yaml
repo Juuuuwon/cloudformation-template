@@ -23,15 +23,15 @@ Parameters:
     Description: "Port number for the application"
     Default: 80
 
-  BastionSSHPort:
-    Type: Number
-    Description: "Port number for the bastion"
-    Default: 22
+  # BastionSSHPort:
+  #   Type: Number
+  #   Description: "Port number for the bastion"
+  #   Default: 22
 
-  BastionSSHCidr:
-    Type: String
-    Description: "Allowed Cidr IP range. https://checkip.amazonaws.com"
-    Default: 0.0.0.0/0
+  # BastionSSHCidr:
+  #   Type: String
+  #   Description: "Allowed Cidr IP range. https://checkip.amazonaws.com"
+  #   Default: 0.0.0.0/0
 
 Resources:
   #
@@ -66,13 +66,13 @@ Resources:
   ALBSecurityGroupEgress1:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow all traffic to anywhere"
+      Description: "allow traffic to application"
       GroupId: !Ref ALBSecurityGroup
-      # DestinationSecurityGroupId: !Ref ALBSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+      # CidrIp: 0.0.0.0/0
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: !Ref ApplicationPort
+      ToPort: !Ref ApplicationPort
   #
   # Application security group
   #
@@ -90,6 +90,18 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
+  AppSecurityGroupIngress0:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: "allow traffic from itself"
+      GroupId: !Ref AppSecurityGroup
+      SourceSecurityGroupId: !Ref AppSecurityGroup
+      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+      # CidrIp: 0.0.0.0/0
+      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+      # FromPort: !Ref ApplicationPort
+      # ToPort: !Ref ApplicationPort
+
   AppSecurityGroupIngress1:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -102,103 +114,149 @@ Resources:
       FromPort: !Ref ApplicationPort
       ToPort: !Ref ApplicationPort
 
-  AppSecurityGroupIngress2:
-    Type: AWS::EC2::SecurityGroupIngress
+
+  # AppSecurityGroupIngressBastion:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     Description: "allow traffic from bastion"
+  #     GroupId: !Ref AppSecurityGroup
+  #     SourceSecurityGroupId: !Ref BastionSecurityGroup
+  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+  #     # CidrIp: 0.0.0.0/0
+  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     FromPort: 22
+  #     ToPort: 22
+
+  AppSecurityGroupEgress0:
+    Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow all traffic from bastion"
+      Description: "allow traffic to itself"
       GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref BastionSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
       # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 22
-      ToPort: 22
+      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+      # FromPort: 443
+      # ToPort: 443
 
   AppSecurityGroupEgress1:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow all traffic to anywhere"
+      Description: "allow https traffic to anywhere"
       GroupId: !Ref AppSecurityGroup
       # DestinationSecurityGroupId: !Ref AppSecurityGroup
       CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: 443
+      ToPort: 443
+
+  AppSecurityGroupEgress2:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: "allow http traffic to anywhere"
+      GroupId: !Ref AppSecurityGroup
+      # DestinationSecurityGroupId: !Ref AppSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: 80
+      ToPort: 80
+
+  AppSecurityGroupEgress3:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: "allow DNS query"
+      GroupId: !Ref AppSecurityGroup
+      # DestinationSecurityGroupId: !Ref AppSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: udp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: 53
+      ToPort: 53
+
+  AppSecurityGroupEgress4:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: "allow DNS query"
+      GroupId: !Ref AppSecurityGroup
+      # DestinationSecurityGroupId: !Ref AppSecurityGroup
+      CidrIp: 0.0.0.0/0
+      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      FromPort: 53
+      ToPort: 53
   #
   # RDS security group
   #
-  RDSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "The security group for RDS"
-      GroupName: !Sub "${NamePrefix}-rds-sg"
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-rds-sg"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
+  # RDSSecurityGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: "The security group for RDS"
+  #     GroupName: !Sub "${NamePrefix}-rds-sg"
+  #     VpcId: !Ref VpcId
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${NamePrefix}-rds-sg"
+  #       - Key: Project
+  #         Value: !Ref Project
+  #       - Key: Owner
+  #         Value: !Ref Owner
 
-  RDSSecurityGroupIngress1:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow all traffic from application"
-      GroupId: !Ref RDSSecurityGroup
-      SourceSecurityGroupId: !Ref AppSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 3306
-      ToPort: 3306
+  # RDSSecurityGroupIngress1:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     Description: "allow all traffic from application"
+  #     GroupId: !Ref RDSSecurityGroup
+  #     SourceSecurityGroupId: !Ref AppSecurityGroup
+  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+  #     # CidrIp: 0.0.0.0/0
+  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     FromPort: 3306
+  #     ToPort: 3306
 
-  RDSSecurityGroupEgress1:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow all traffic to anywhere"
-      GroupId: !Ref RDSSecurityGroup
-      # DestinationSecurityGroupId: !Ref AppSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
+  # RDSSecurityGroupEgress1:
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties:
+  #     Description: "allow all traffic to anywhere"
+  #     GroupId: !Ref RDSSecurityGroup
+  #     # DestinationSecurityGroupId: !Ref AppSecurityGroup
+  #     CidrIp: 0.0.0.0/0
+  #     IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+  #     # FromPort: 443
+  #     # ToPort: 443
+
   #
-  # RDS security group
+  # Bastion security group
   #
-  BastionSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: "The security group for Bastion"
-      GroupName: !Sub "${NamePrefix}-bastion-sg"
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-bastion-sg"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
+  # BastionSecurityGroup:
+  #   Type: AWS::EC2::SecurityGroup
+  #   Properties:
+  #     GroupDescription: "The security group for Bastion"
+  #     GroupName: !Sub "${NamePrefix}-bastion-sg"
+  #     VpcId: !Ref VpcId
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${NamePrefix}-bastion-sg"
+  #       - Key: Project
+  #         Value: !Ref Project
+  #       - Key: Owner
+  #         Value: !Ref Owner
 
-  BastionSecurityGroupIngress1:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow all traffic from local machine"
-      GroupId: !Ref BastionSecurityGroup
-      # SourceSecurityGroupId: !Ref AppSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      CidrIp: !Ref BastionSSHCidr
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: !Ref BastionSSHPort
-      ToPort: !Ref BastionSSHPort
+  # BastionSecurityGroupIngress1:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     Description: "allow all traffic from local machine"
+  #     GroupId: !Ref BastionSecurityGroup
+  #     # SourceSecurityGroupId: !Ref AppSecurityGroup
+  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
+  #     CidrIp: !Ref BastionSSHCidr
+  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     FromPort: !Ref BastionSSHPort
+  #     ToPort: !Ref BastionSSHPort
 
-  BastionSecurityGroupEgress1:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow all traffic to anywhere"
-      GroupId: !Ref BastionSecurityGroup
-      # DestinationSecurityGroupId: !Ref AppSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
+  # BastionSecurityGroupEgress1:
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties:
+  #     Description: "allow all traffic to anywhere"
+  #     GroupId: !Ref BastionSecurityGroup
+  #     # DestinationSecurityGroupId: !Ref AppSecurityGroup
+  #     CidrIp: 0.0.0.0/0
+  #     IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
+  #     # FromPort: 443
+  #     # ToPort: 443
