@@ -18,7 +18,20 @@ phases:
       - echo Pushing the Docker image...
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
       - echo Writing image detail file...
-      - printf '{"ImageURI":"%s"}' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG > imageDetail.json
+      - printf '{"ImageURI":"%s"}' $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG > us/imageDetail.json
+      - printf '{"ImageURI":"%s"}' $AWS_ACCOUNT_ID.dkr.ecr.ap-northeast-2.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG > ap/imageDetail.json
 
 artifacts:
-  files: imageDetail.json
+  secondary-artifacts:
+    APBuildArtifact:
+      files:
+        - ap/imageDetail.json
+        - ap/appspec.yaml
+        - ap/taskdef.json
+      discard-paths: yes
+    USBuildArtifact:
+      files:
+        - us/imageDetail.json
+        - us/appspec.yaml
+        - us/taskdef.json
+      discard-paths: yes
