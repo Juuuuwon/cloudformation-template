@@ -121,6 +121,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
     Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-mysql-instance-1"
       Engine: aurora-mysql
@@ -146,6 +147,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
     Properties:
+      AvailabilityZone: !Select [1, !GetAZs ""]
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-mysql-instance-2"
       Engine: aurora-mysql
