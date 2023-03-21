@@ -20,6 +20,42 @@ Parameters:
     Description: "The prefix of resource's Name tag"
     Default: Unicorn
 
+  ParameterGroupFamily:
+    Type: String
+    Description: "Family for DB parameter group"
+    Default: aurora-mysql8.0
+
+  EngineVersion:
+    Type: String
+    Description: "Aurora MySQL version. aws rds describe-engine-versions --engine aurora-mysql"
+    Default: 8.0.mysql_aurora.3.03.0
+
+  InstanceType:
+    Type: String
+    Description: "DB instance type"
+    Default: db.r6g.large
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Tag configuration"
+        Parameters:
+          - Project
+          - Owner
+      - Label:
+          default: "ALB Configuration"
+        Parameters:
+          - NamePrefix
+          - InstanceType
+          - EngineVersion
+          - ParameterGroupFamily
+      - Label:
+          default: "RDS Network Configuration"
+        Parameters:
+          - SubnetIds
+          - SecurityGroupIds
+
 Resources:
   #
   # IAM - Role (for RDS Monitoring)
@@ -68,8 +104,8 @@ Resources:
   DBClusterParameterGroup:
     Type: AWS::RDS::DBClusterParameterGroup
     Properties:
-      Description: "This is cluster parameter group of aurora-mysql5.7"
-      Family: aurora-mysql5.7
+      Description: "This is cluster parameter group"
+      Family: !Ref ParameterGroupFamily
       Parameters:
         time_zone: US/Eastern
         character_set_database: utf8mb4
@@ -80,8 +116,8 @@ Resources:
   DBParameterGroup:
     Type: AWS::RDS::DBParameterGroup
     Properties:
-      Description: "This is parameter group of aurora-mysql5.7"
-      Family: aurora-mysql5.7
+      Description: "This is parameter group"
+      Family: !Ref ParameterGroupFamily
       # Parameters:
       #   Key : Value
 
@@ -107,7 +143,7 @@ Resources:
       DBSubnetGroupName: !Ref DBSubnetGroup
       Engine: aurora-mysql # aurora (mysql5.6) , aurora-mysql (mysql5.7) , aurora-postgresql
       EngineMode: provisioned # provisioned , serverless , parallelquery , global , multimaster
-      EngineVersion: 5.7.mysql_aurora.2.10.3
+      EngineVersion: !Ref EngineVersion
       EnableCloudwatchLogsExports: # audit , error , general , slowquery
         - audit
         - error
@@ -159,8 +195,7 @@ Resources:
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-mysql-instance-1"
       Engine: aurora-mysql
-      # EngineVersion: 5.7.mysql_aurora.2.10.3
-      DBInstanceClass: db.r6g.large
+      DBInstanceClass: !Ref InstanceType
       DBParameterGroupName: !Ref DBParameterGroup
       PubliclyAccessible: false
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
@@ -184,8 +219,7 @@ Resources:
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-mysql-instance-2"
       Engine: aurora-mysql
-      # EngineVersion: 5.7.mysql_aurora.2.10.3
-      DBInstanceClass: db.r6g.large
+      DBInstanceClass: !Ref InstanceType
       DBParameterGroupName: !Ref DBParameterGroup
       PubliclyAccessible: false
       MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
