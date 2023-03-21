@@ -29,6 +29,39 @@ Parameters:
     Type: String
     Description: "The name of node group"
 
+  InstanceType:
+    Type: String
+    Description: "Instance size of node"
+    Default: r6g.large
+
+  AMI:
+    Type: String
+    Description: "Base image of node"
+    AllowedValues:
+      - AL2_ARM_64
+      - AL2_x86_64
+      - BOTTLEROCKET_ARM_64
+      - BOTTLEROCKET_x86_64
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Node group Configuration"
+        Parameters:
+          - ClusterName
+          - NodeGroupName
+          - InstanceType
+          - AMI
+          - KeyPair
+          - SubnetIds
+          - SecurityGroupIds
+      - Label:
+          default: "Tag Configuration"
+        Parameters:
+          - Project
+          - Owner
+
 Resources:
   #
   # IAM Role (For EKS Node Group)
@@ -86,7 +119,7 @@ Resources:
               Encrypted: true
               # KmsKeyId: String
         # InstanceInitiatedShutdownBehavior: terminate # stop , terminate
-        InstanceType: c5.xlarge
+        InstanceType: !Ref InstanceType
         KeyName: !Ref KeyPair
         # Monitoring:
         SecurityGroupIds: !Ref SecurityGroupIds
@@ -107,18 +140,6 @@ Resources:
                 Value: !Ref Project
               - Key: Owner
                 Value: !Ref Owner
-        UserData:
-          Fn::Base64: !Sub |
-            MIME-Version: 1.0
-            Content-Type: multipart/mixed; boundary="==MYBOUNDARY=="
-
-            --==MYBOUNDARY==
-            Content-Type: text/x-shellscript; charset="us-ascii"
-
-            #!/bin/bash
-            echo "Running custom user data script"
-
-            --==MYBOUNDARY==--
 
   #
   # EKS - Managed Node Group
@@ -127,7 +148,7 @@ Resources:
     Type: AWS::EKS::Nodegroup
     Properties:
       NodegroupName: !Ref NodeGroupName
-      AmiType: AL2_x86_64 # AL2_ARM_64 | AL2_x86_64 | AL2_x86_64_GPU | BOTTLEROCKET_ARM_64 | BOTTLEROCKET_x86_64 | CUSTOM
+      AmiType: !Ref AMI
       CapacityType: ON_DEMAND # ON_DEMAND | SPOT
       ClusterName: !Ref ClusterName
       ForceUpdateEnabled: false
