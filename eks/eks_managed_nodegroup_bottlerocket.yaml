@@ -125,8 +125,8 @@ Resources:
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       NodeRole: !GetAtt Role.Arn
       ScalingConfig:
-        DesiredSize: 3 # It must be defined at first time. and after that it is recommended removing.
-        MinSize: 3
+        DesiredSize: 2 # It must be defined at first time. and after that it is recommended removing.
+        MinSize: 2
         MaxSize: 20
       Subnets: !Ref SubnetIds
       UpdateConfig:
