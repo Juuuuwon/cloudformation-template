@@ -179,8 +179,8 @@ Resources:
       # CapacityRebalance: Boolean
       Cooldown: "120"
       DesiredCapacityType: units # units , vcpu , memory-mib
-      DesiredCapacity: "0"
-      MinSize: "0"
+      DesiredCapacity: "2"
+      MinSize: "2"
       MaxSize: "20"
       HealthCheckGracePeriod: 60
       HealthCheckType: EC2 # EC2 , ELB
