@@ -189,13 +189,12 @@ Resources:
               Configuration:
                 ApplicationName: !Ref CodeDeployApplicationName
                 DeploymentGroupName: !Ref CodeDeployDeploymentGroupName
-                TaskDefinitionTemplateArtifact: SourceArtifact
-                AppSpecTemplateArtifact: SourceArtifact
+                TaskDefinitionTemplateArtifact: BuildArtifact
+                AppSpecTemplateArtifact: BuildArtifact
                 Image1ArtifactName: BuildArtifact
                 Image1ContainerName: IMAGE1_NAME
               InputArtifacts:
                 - Name: BuildArtifact
-                - Name: SourceArtifact
               # Namespace: String
               # OutputArtifacts:
               #   - Name: BuildOutput

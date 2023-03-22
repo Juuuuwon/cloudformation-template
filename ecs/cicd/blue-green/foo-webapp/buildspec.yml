@@ -21,4 +21,7 @@ phases:
       - printf '{"ImageURI":"%s"}' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG > imageDetail.json
 
 artifacts:
-  files: imageDetail.json
+  files:
+    - imageDetail.json
+    - taskdef.json
+    - appspec.yaml
