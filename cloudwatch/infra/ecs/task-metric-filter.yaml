@@ -32,7 +32,7 @@ Resources:
             - Key: ClusterName
               Value: $.ClusterName
             - Key: ServiceName
-              Value: $.Service
+              Value: $.ServiceName
             - Key: TaskId
               Value: $.TaskId
           MetricNamespace: !Ref MetricNamespace
