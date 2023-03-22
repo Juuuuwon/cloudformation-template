@@ -32,7 +32,7 @@ Parameters:
   InstanceType:
     Type: String
     Description: "Instance size of node"
-    Default: r6g.large
+    Default: c6g.large
 
   AMI:
     Type: String
