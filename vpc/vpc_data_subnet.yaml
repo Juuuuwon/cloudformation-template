@@ -28,17 +28,83 @@ Parameters:
       - 2
       - 3
 
+  VPCCidr:
+    Description: Cidr block of VPC
+    Type: String
+    Default: 10.10.0.0/16
+
+  PublicSubnetACidr:
+    Description: Cidr block of public subnet A
+    Type: String
+    Default: 10.10.1.0/24
+
+  PublicSubnetBCidr:
+    Description: Cidr block of public subnet B
+    Type: String
+    Default: 10.10.2.0/24
+
+  PublicSubnetCCidr:
+    Description: Cidr block of public subnet C
+    Type: String
+    Default: 10.10.3.0/24
+
+  PrivateSubnetACidr:
+    Description: Cidr block of private subnet A
+    Type: String
+    Default: 10.10.11.0/24
+
+  PrivateSubnetBCidr:
+    Description: Cidr block of private subnet B
+    Type: String
+    Default: 10.10.12.0/24
+
+  PrivateSubnetCCidr:
+    Description: Cidr block of private subnet C
+    Type: String
+    Default: 10.10.13.0/24
+
+  DataSubnetACidr:
+    Description: Cidr block of data subnet A
+    Type: String
+    Default: 10.10.21.0/24
+
+  DataSubnetBCidr:
+    Description: Cidr block of data subnet B
+    Type: String
+    Default: 10.10.22.0/24
+
+  DataSubnetCCidr:
+    Description: Cidr block of data subnet C
+    Type: String
+    Default: 10.10.23.0/24
+
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "VPC Configuration"
+          default: "VPC configuration"
         Parameters:
           - NamePrefix
           - EnableFlowLog
-          - AZCount
-          - Owner
           - Project
+          - Owner
+      - Label:
+          default: "Network cidr configuration"
+        Parameters:
+          - VPCCidr
+          - PublicSubnetACidr
+          - PublicSubnetBCidr
+          - PublicSubnetCCidr
+          - PrivateSubnetACidr
+          - PrivateSubnetBCidr
+          - PrivateSubnetCCidr
+          - DataSubnetACidr
+          - DataSubnetBCidr
+          - DataSubnetCCidr
+      - Label:
+          default: "Multi AZ count"
+        Parameters:
+          - AZCount
 
 Conditions:
   CreateFlowLog: !Equals [!Ref EnableFlowLog, "true"]
@@ -50,7 +116,7 @@ Resources:
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.10.0.0/16
+      CidrBlock: !Ref VPCCidr
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
@@ -129,7 +195,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.1.0/24
+      CidrBlock: !Ref PublicSubnetACidr
       AvailabilityZone: !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
@@ -144,7 +210,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.2.0/24
+      CidrBlock: !Ref PublicSubnetBCidr
       AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
@@ -160,7 +226,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.3.0/24
+      CidrBlock: !Ref PublicSubnetCCidr
       AvailabilityZone: !Select [2, !GetAZs ""]
       MapPublicIpOnLaunch: true
       Tags:
@@ -178,7 +244,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.11.0/24
+      CidrBlock: !Ref PrivateSubnetACidr
       AvailabilityZone: !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -193,7 +259,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.12.0/24
+      CidrBlock: !Ref PrivateSubnetBCidr
       AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -209,7 +275,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.13.0/24
+      CidrBlock: !Ref PrivateSubnetCCidr
       AvailabilityZone: !Select [2, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -227,7 +293,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.21.0/24
+      CidrBlock: !Ref DataSubnetACidr
       AvailabilityZone: !Select [0, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -242,7 +308,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.22.0/24
+      CidrBlock: !Ref DataSubnetBCidr
       AvailabilityZone: !Select [1, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -258,7 +324,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: 10.10.23.0/24
+      CidrBlock: !Ref DataSubnetCCidr
       AvailabilityZone: !Select [2, !GetAZs ""]
       MapPublicIpOnLaunch: false
       Tags:
@@ -279,7 +345,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-natgateway-a-eip"
+          Value: !Sub "${NamePrefix}-nat-a-eip"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -292,7 +358,7 @@ Resources:
       SubnetId: !Ref PublicSubnetA
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-natgateway-a"
+          Value: !Sub "${NamePrefix}-nat-a"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -305,7 +371,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-natgateway-b-eip"
+          Value: !Sub "${NamePrefix}-nat-b-eip"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -318,7 +384,7 @@ Resources:
       SubnetId: !Ref PublicSubnetB
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-natgateway-b"
+          Value: !Sub "${NamePrefix}-nat-b"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -332,7 +398,7 @@ Resources:
       Domain: vpc
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-natgateway-c-eip"
+          Value: !Sub "${NamePrefix}-nat-c-eip"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -346,7 +412,7 @@ Resources:
       SubnetId: !Ref PublicSubnetC
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-natgateway-c"
+          Value: !Sub "${NamePrefix}-nat-c"
         - Key: Project
           Value: !Ref Project
         - Key: Owner

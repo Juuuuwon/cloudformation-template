@@ -83,6 +83,10 @@ Metadata:
           - PrivateSubnetACidr
           - PrivateSubnetBCidr
           - PrivateSubnetCCidr
+      - Label:
+          default: "Multi AZ count"
+        Parameters:
+          - AZCount
 
 Conditions:
   CreateFlowLog: !Equals [!Ref EnableFlowLog, "true"]
