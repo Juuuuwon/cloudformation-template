@@ -27,7 +27,7 @@ Parameters:
 
   EngineVersion:
     Type: String
-    Description: "Aurora MySQL version. aws rds describe-engine-versions --engine aurora-mysql"
+    Description: "Aurora MySQL version. aws rds describe-db-engine-versions --engine aurora-mysql"
     Default: 8.0.mysql_aurora.3.03.0
 
   InstanceType:
