@@ -14,10 +14,26 @@ Parameters:
   CodeCommitBranchName:
     Description: "The branch name of codecommit"
     Type: String
+    Default: main
 
   CodeBuildProjectNameECR:
     Description: "The project name of codebuild for ecr upload"
     Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Pipeline Configuration"
+        Parameters:
+          - CodePipelineName
+          - ArtifactBucketName
+      - Label:
+          default: "Stage Configuration"
+        Parameters:
+          - CodeCommitRepositoryName
+          - CodeCommitBranchName
+          - CodeBuildProjectNameECR
 
 Resources:
   #

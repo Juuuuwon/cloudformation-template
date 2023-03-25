@@ -2,7 +2,7 @@ Parameters:
   ArtifactBucketNameUS:
     Description: "The bucket name for artifacts"
     Type: String
-  
+
   ArtifactBucketNameAP:
     Description: "The bucket name for artifacts"
     Type: String
@@ -14,6 +14,7 @@ Parameters:
   CodeCommitBranchName:
     Description: "The branch name of codecommit"
     Type: String
+    Default: main
 
   CodeBuildProjectName:
     Description: "The project name of codebuild"
@@ -38,6 +39,26 @@ Parameters:
   CodePipelineName:
     Description: "The name of codepipeline"
     Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Pipeline Configuration"
+        Parameters:
+          - CodePipelineName
+          - ArtifactBucketNameUS
+          - ArtifactBucketNameAP
+      - Label:
+          default: "Stage Configuration"
+        Parameters:
+          - CodeCommitRepositoryName
+          - CodeCommitBranchName
+          - CodeBuildProjectName
+          - CodeDeployApplicationNameUS
+          - CodeDeployApplicationNameAP
+          - CodeDeployDeploymentGroupNameUS
+          - CodeDeployDeploymentGroupNameAP
 
 Resources:
   #
