@@ -25,6 +25,11 @@ Parameters:
     Type: CommaDelimitedList
     Description: "The Target Group Arns that will be attached instance to alb"
 
+  InstanceType:
+    Type: String
+    Description: "Instance type for instances"
+    Default: t3.medium
+
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
@@ -42,8 +47,8 @@ Resources:
   Role:
     Type: AWS::IAM::Role
     Properties:
-      # RoleName: example-ec2-role
-      # Description: description
+      RoleName: !Sub "${AutoScalingGroupName}-role"
+      Description: !Sub "The role for ${AutoScalingGroupName}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -79,7 +84,7 @@ Resources:
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      # InstanceProfileName: example-ec2-instance-profile
+      # InstanceProfileName: example-worker-instance-profile
       Path: /
       Roles:
         - !Ref Role
@@ -112,7 +117,7 @@ Resources:
           # Name: String
         ImageId: !Ref AMI
         InstanceInitiatedShutdownBehavior: terminate # stop , terminate
-        InstanceType: t3.small
+        InstanceType: !Ref InstanceType
         KeyName: !Ref KeyPair
         Monitoring: # detailed monitoring
           Enabled: true
@@ -121,7 +126,7 @@ Resources:
           - ResourceType: instance # instance, volume
             Tags:
               - Key: Name
-                Value: !Sub "${AutoScalingGroupName}-ec2"
+                Value: !Sub "${AutoScalingGroupName}-worker"
               - Key: Project
                 Value: !Ref Project
               - Key: Owner
@@ -129,25 +134,40 @@ Resources:
           - ResourceType: volume # instance, volume
             Tags:
               - Key: Name
-                Value: !Sub "${AutoScalingGroupName}-ec2"
+                Value: !Sub "${AutoScalingGroupName}-worker"
               - Key: Project
                 Value: !Ref Project
               - Key: Owner
                 Value: !Ref Owner
         UserData:
-          Fn::Base64: |
+          Fn::Base64: !Sub |
             #!/bin/bash -xe
-            yum install -y httpd
-            cat << EOF >> /var/www/html/index.html
-            <html>
-              <body>
-                <h1>Auto Scaling Group Demo</h1>
-                <p>This is example page for auto scaling group demonstration</p>
-              </body>
-            </html>
-            EOF
-            systemctl enable httpd.service
-            systemctl start httpd.service
+            yum update -y
+
+            #### install pypy3 ####
+            cd /etc
+
+            wget https://downloads.python.org/pypy/pypy3.9-v7.3.11-linux64.tar.bz2
+            tar -xf pypy3.9-v7.3.11-linux64.tar.bz2
+            ln -s /etc/pypy3.9-v7.3.11-linux64/bin/pypy3.9 /usr/bin/pypy3
+            pypy3 -m ensurepip
+            pypy3 -m pip install virtualenv
+
+            #### install codedeploy-agent ####
+            yum install ruby wget -y
+
+            cd /home/ec2-user
+            wget https://aws-codedeploy-us-east-1.s3.us-east-1.amazonaws.com/latest/install
+            chmod +x ./install
+            ./install auto
+
+            systemctl enable codedeploy-agent --now
+
+            #### install cloudwatch-agent ####
+
+            # Get the latest cloudwatch-agent package
+            rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+            systemctl enable cloudwatch-agent --now
 
   #
   # Auto Scaling Group
@@ -170,6 +190,22 @@ Resources:
       Tags:
         - PropagateAtLaunch: true
           Key: Name
-          Value: !Sub "${AutoScalingGroupName}-ec2"
+          Value: !Sub "${AutoScalingGroupName}-worker"
       TargetGroupARNs: !Ref TargetGroupARNs
       VPCZoneIdentifier: !Ref SubnetIds
+
+  #
+  # Scaling Policy
+  #
+  TargetTrackingScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      PolicyType: TargetTrackingScaling # TargetTrackingScaling | StepScaling | SimpleScaling
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      TargetTrackingConfiguration:
+        DisableScaleIn: False
+        PredefinedMetricSpecification:
+          # Available Value : ASGAverageCPUUtilization | ASGAverageNetworkIn | ASGAverageNetworkOut | ALBRequestCountPerTarget
+          PredefinedMetricType: ASGAverageCPUUtilization
+          # ResourceLabel: String # When Using ALBRequestCountPerTarget
+        TargetValue: 60

@@ -1,4 +1,8 @@
 Parameters:
+  CodePipelineName:
+    Description: "The name of the pipeline"
+    Type: String
+
   ArtifactBucketName:
     Description: "The bucket name for artifacts"
     Type: String
@@ -10,6 +14,7 @@ Parameters:
   CodeCommitBranchName:
     Description: "The branch name of codecommit"
     Type: String
+    Default: main
 
   CodeBuildProjectName:
     Description: "The project name of codebuild"
@@ -22,6 +27,23 @@ Parameters:
   CodeDeployDeploymentGroupName:
     Description: "The deployment group name of codedeploy"
     Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Pipeline Configuration"
+        Parameters:
+          - CodePipelineName
+          - ArtifactBucketName
+      - Label:
+          default: "Stage Configuration"
+        Parameters:
+          - CodeCommitRepositoryName
+          - CodeCommitBranchName
+          - CodeBuildProjectName
+          - CodeDeployApplicationName
+          - CodeDeployDeploymentGroupName
 
 Resources:
   #
@@ -129,7 +151,7 @@ Resources:
         #   Type: KMS
         Location: !Ref ArtifactBucketName
         Type: S3
-      Name: stress-app
+      Name: !Ref CodePipelineName
       RoleArn: !GetAtt Role.Arn
       Stages:
         - Name: Source

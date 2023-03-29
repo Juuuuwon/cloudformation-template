@@ -88,22 +88,22 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  #
-  # CodeDeploy - Deployment Config
-  #
-  DeploymentConfig:
-    Type: AWS::CodeDeploy::DeploymentConfig
-    Properties:
-      ComputePlatform: ECS # ECS | Lambda | Server
-      DeploymentConfigName: "ecs-blue-green"
-      TrafficRoutingConfig:
-        # TimeBasedCanary:
-        #   CanaryInterval: 5 # minute 0 , 5 , 10 ...
-        #   CanaryPercentage: 10
-        # TimeBasedLinear:
-        #   LinearInterval: 5 # minute 0 , 5 , 10 ...
-        #   LinearPercentage: 25
-        Type: AllAtOnce # AllAtOnce | TimeBasedCanary | TimeBasedLinear
+  # #
+  # # CodeDeploy - Deployment Config
+  # #
+  # DeploymentConfig:
+  #   Type: AWS::CodeDeploy::DeploymentConfig
+  #   Properties:
+  #     ComputePlatform: ECS # ECS | Lambda | Server
+  #     DeploymentConfigName: "ecs-blue-green"
+  #     TrafficRoutingConfig:
+  #       # TimeBasedCanary:
+  #       #   CanaryInterval: 5 # minute 0 , 5 , 10 ...
+  #       #   CanaryPercentage: 10
+  #       # TimeBasedLinear:
+  #       #   LinearInterval: 5 # minute 0 , 5 , 10 ...
+  #       #   LinearPercentage: 25
+  #       Type: AllAtOnce # AllAtOnce | TimeBasedCanary | TimeBasedLinear
 
   #
   # CodeDeploy - Deployment Group
@@ -124,7 +124,7 @@ Resources:
         TerminateBlueInstancesOnDeploymentSuccess:
           Action: TERMINATE # KEEP_ALIVE | TERMINATE
           TerminationWaitTimeInMinutes: 0 # 0 , 5 , 10 , 15 ...
-      DeploymentConfigName: !Ref DeploymentConfig
+      DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
       DeploymentStyle:
         DeploymentOption: WITH_TRAFFIC_CONTROL
         DeploymentType: BLUE_GREEN

@@ -10,6 +10,7 @@ Parameters:
   CodeCommitBranchName:
     Description: "The branch name of codecommit"
     Type: String
+    Default: main
 
   CodeBuildProjectName:
     Description: "The project name of codebuild"
@@ -26,6 +27,23 @@ Parameters:
   ECSServiceName:
     Description: "The service name of ECS"
     Type: String
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Pipeline Configuration"
+        Parameters:
+          - CodePipelineName
+          - ArtifactBucketName
+      - Label:
+          default: "Stage Configuration"
+        Parameters:
+          - CodeCommitRepositoryName
+          - CodeCommitBranchName
+          - CodeBuildProjectName
+          - ECSClusterName
+          - ECSServiceName
 
 Resources:
   #
