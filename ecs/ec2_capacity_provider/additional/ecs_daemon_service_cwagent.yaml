@@ -8,13 +8,13 @@ Parameters:
     Description: Cloudwatch agent image. Be aware of cpu architecture
     Default: public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest
 
-  SecurityGroupIds:
-    Type: List<AWS::EC2::SecurityGroup::Id>
-    Description: "The security group ids for attached your task"
+  # SecurityGroupIds:
+  #   Type: List<AWS::EC2::SecurityGroup::Id>
+  #   Description: "The security group ids for attached your task"
 
-  SubnetIds:
-    Type: List<AWS::EC2::Subnet::Id>
-    Description: "The subnet ids for locate your task"
+  # SubnetIds:
+  #   Type: List<AWS::EC2::Subnet::Id>
+  #   Description: "The subnet ids for locate your task"
 
 Resources:
   TaskRole:
@@ -64,7 +64,7 @@ Resources:
       Family: ecs-cwagent-daemon-service
       TaskRoleArn: !GetAtt TaskRole.Arn
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
-      NetworkMode: awsvpc
+      NetworkMode: bridge
       ContainerDefinitions:
         - Name: cloudwatch-agent
           Image: !Ref CWAgentImage
@@ -113,8 +113,8 @@ Resources:
       LaunchType: EC2
       SchedulingStrategy: DAEMON
       ServiceName: cwagent-daemon-service
-      NetworkConfiguration:
-        AwsvpcConfiguration:
-          AssignPublicIp: DISABLED # DISABLED | ENABLED
-          SecurityGroups: !Ref SecurityGroupIds
-          Subnets: !Ref SubnetIds
+      # NetworkConfiguration:
+      #   AwsvpcConfiguration:
+      #     AssignPublicIp: DISABLED # DISABLED | ENABLED
+      #     SecurityGroups: !Ref SecurityGroupIds
+      #     Subnets: !Ref SubnetIds
