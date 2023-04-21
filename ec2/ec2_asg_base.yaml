@@ -12,6 +12,11 @@ Parameters:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The Security Group Ids for launched instances"
 
+  InstanceType:
+    Type: String
+    Description: "Instance type for the instances"
+    Default: t3.medium
+
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Description: "The Keypair for launched instances"
@@ -108,7 +113,7 @@ Resources:
           # Name: String
         ImageId: !Ref AMI
         InstanceInitiatedShutdownBehavior: terminate # stop , terminate
-        InstanceType: t3.small
+        InstanceType: !Ref InstanceType
         KeyName: !Ref KeyPair
         Monitoring: # detailed monitoring
           Enabled: true
