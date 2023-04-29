@@ -7,7 +7,7 @@ Parameters:
   LogGroupName:
     Type: String
     Description: Log group name to apply metric filter
-    Default: /aws/ecs/containerinsights/unicorn-cluster/performance
+    Default: /aws/ecs/containerinsights/wsi-cluster/performance
 
   FilterPattern:
     Type: String
@@ -17,7 +17,7 @@ Parameters:
   MetricNamespace:
     Type: String
     Description: Cloudwatch metric namespace
-    Default: Unicorn
+    Default: wsi
 
 Resources:
   MetricFilterCPUUtilized:

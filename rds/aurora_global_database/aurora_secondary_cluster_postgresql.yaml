@@ -12,17 +12,17 @@ Parameters:
   Owner:
     Type: String
     Description: "The team name for owned this resources"
-    Default: TeamKorea
+    Default: hmoon
 
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
-    Default: Unicorn.Rental
+    Default: wsi
 
   NamePrefix:
     Type: String
     Description: "The prefix of resource's Name tag"
-    Default: Unicorn
+    Default: wsi
 
 Resources:
   #

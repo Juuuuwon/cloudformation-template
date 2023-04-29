@@ -32,7 +32,7 @@ Parameters:
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
-    Default: skills
+    Default: wsi
 
   Owner:
     Type: String
