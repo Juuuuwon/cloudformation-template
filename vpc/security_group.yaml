@@ -54,7 +54,7 @@ Resources:
   ALBSecurityGroupIngress1:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "allow all traffic from anywhere"
+      Description: "allow http from internet"
       GroupId: !Ref ALBSecurityGroup
       # SourceSecurityGroupId: !Ref ALBSecurityGroup
       # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
@@ -66,7 +66,7 @@ Resources:
   ALBSecurityGroupEgress1:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to application"
+      Description: "allow application access"
       GroupId: !Ref ALBSecurityGroup
       DestinationSecurityGroupId: !Ref AppSecurityGroup
       # CidrIp: 0.0.0.0/0
@@ -90,22 +90,10 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  AppSecurityGroupIngress0:
+  AppSecurityGroupIngressALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "allow traffic from itself"
-      GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref AppSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: !Ref ApplicationPort
-      # ToPort: !Ref ApplicationPort
-
-  AppSecurityGroupIngress1:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow all traffic from ALB"
+      Description: "allow ALB"
       GroupId: !Ref AppSecurityGroup
       SourceSecurityGroupId: !Ref ALBSecurityGroup
       # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
@@ -126,21 +114,10 @@ Resources:
   #     FromPort: 22
   #     ToPort: 22
 
-  AppSecurityGroupEgress0:
+  AppSecurityGroupEgressHTTPS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to itself"
-      GroupId: !Ref AppSecurityGroup
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
-
-  AppSecurityGroupEgress1:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow https traffic to anywhere"
+      Description: "allow https"
       GroupId: !Ref AppSecurityGroup
       # DestinationSecurityGroupId: !Ref AppSecurityGroup
       CidrIp: 0.0.0.0/0
@@ -148,10 +125,10 @@ Resources:
       FromPort: 443
       ToPort: 443
 
-  AppSecurityGroupEgress2:
+  AppSecurityGroupEgressHTTP:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow http traffic to anywhere"
+      Description: "allow http"
       GroupId: !Ref AppSecurityGroup
       # DestinationSecurityGroupId: !Ref AppSecurityGroup
       CidrIp: 0.0.0.0/0
@@ -159,27 +136,17 @@ Resources:
       FromPort: 80
       ToPort: 80
 
-  AppSecurityGroupEgress3:
+  AppSecurityGroupEgressRDS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow DNS query"
-      GroupId: !Ref AppSecurityGroup
-      # DestinationSecurityGroupId: !Ref AppSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: udp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 53
-      ToPort: 53
-
-  AppSecurityGroupEgress4:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow DNS query"
+      Description: "allow RDS access"
       GroupId: !Ref AppSecurityGroup
       # DestinationSecurityGroupId: !Ref AppSecurityGroup
       CidrIp: 0.0.0.0/0
       IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 53
-      ToPort: 53
+      FromPort: 3306
+      ToPort: 3306
+
   #
   # RDS security group
   #
@@ -200,7 +167,7 @@ Resources:
   # RDSSecurityGroupIngress1:
   #   Type: AWS::EC2::SecurityGroupIngress
   #   Properties:
-  #     Description: "allow all traffic from application"
+  #     Description: "allow application"
   #     GroupId: !Ref RDSSecurityGroup
   #     SourceSecurityGroupId: !Ref AppSecurityGroup
   #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
@@ -212,7 +179,7 @@ Resources:
   # RDSSecurityGroupEgress1:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     Description: "allow all traffic to anywhere"
+  #     Description: "allow all"
   #     GroupId: !Ref RDSSecurityGroup
   #     # DestinationSecurityGroupId: !Ref AppSecurityGroup
   #     CidrIp: 0.0.0.0/0
@@ -252,7 +219,7 @@ Resources:
   # BastionSecurityGroupEgress1:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     Description: "allow all traffic to anywhere"
+  #     Description: "allow all"
   #     GroupId: !Ref BastionSecurityGroup
   #     # DestinationSecurityGroupId: !Ref AppSecurityGroup
   #     CidrIp: 0.0.0.0/0
