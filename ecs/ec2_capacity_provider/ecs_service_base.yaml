@@ -152,4 +152,6 @@ Resources:
       TargetTrackingScalingPolicyConfiguration:
         PredefinedMetricSpecification:
           PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleOutCooldown: 120
+        ScaleInCooldown: 120
         TargetValue: 60.0
