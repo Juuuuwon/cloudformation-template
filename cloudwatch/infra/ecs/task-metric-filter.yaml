@@ -56,6 +56,24 @@ Resources:
           MetricNamespace: !Ref MetricNamespace
           MetricValue: $.CpuReserved
 
+  MetricFilterMemoryUtilized:
+    Type: AWS::Logs::MetricFilter
+    Properties: 
+      FilterName: !Sub "${FilterName}-memory-utilized"
+      FilterPattern: !Ref FilterPattern
+      LogGroupName: !Ref LogGroupName
+      MetricTransformations: 
+        - MetricName: memory-utilized
+          Dimensions: 
+            - Key: ClusterName
+              Value: $.ClusterName
+            - Key: ServiceName
+              Value: $.ServiceName
+            - Key: TaskId
+              Value: $.TaskId
+          MetricNamespace: !Ref MetricNamespace
+          MetricValue: $.MemoryUtilized
+
   MetricFilterMemoryReserved:
     Type: AWS::Logs::MetricFilter
     Properties: 
