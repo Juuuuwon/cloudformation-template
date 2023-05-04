@@ -155,9 +155,9 @@ def describe_sequence(stack_sequences: Iterable[Iterable[dict]]):
 
         for info in stack_infos:
             print(
-                f"{Fore.LIGHTGREEN_EX}{info['StackName']}"
+                f"{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{info['StackName']}\t{info['Capabilities']}{Style.RESET_ALL}"
                 if info["Capabilities"]
-                else f"{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{info['StackName']}\t{info['Capabilities']}{Style.RESET_ALL}"
+                else f"{Fore.LIGHTGREEN_EX}{info['StackName']}"
             )
             parameters = [
                 f"{Fore.LIGHTBLACK_EX}{param['ParameterKey']}: {Fore.WHITE}{Style.BRIGHT}{param['ParameterValue']}{Style.RESET_ALL}"
