@@ -29,12 +29,22 @@ def get_template_body(path: str) -> str:
 
 
 def create_stack(stack: dict) -> TypedDict:
-    response = client.create_stack(**stack)
+    response = client.create_stack(
+        StackName=stack["StackName"],
+        TemplateBody=stack["TemplateBody"],
+        Parameters=stack["Parameters"],
+        Capabilities=stack["Capabilities"],
+    )
     return response
 
 
 def update_stack(stack: dict) -> TypedDict:
-    response = client.update_stack(**stack)
+    response = client.update_stack(
+        StackName=stack["StackName"],
+        TemplateBody=stack["TemplateBody"],
+        Parameters=stack["Parameters"],
+        Capabilities=stack["Capabilities"],
+    )
     return response
 
 
@@ -266,14 +276,17 @@ if __name__ == "__main__":
     )
 
     try:
-        ### Define sequences which deploy commit, build, pipeline in order.
+        ### Defining stacks as generator is recommended for lazy evaluation.
+        ### If you want to reference stacks later, convert to list here.
+        # codepipeline_stack = list(codepipeline_stack)
+
         sequences = list(
             zip(
-                codecommit_stack,
-                codebuild_stack,
-                codedeploy_stack,
-                codepipeline_stack,
-                # vpc_stack,
+                # codecommit_stack,
+                # codebuild_stack,
+                # codedeploy_stack,
+                # codepipeline_stack,
+                vpc_stack,
             )
         )
 
