@@ -1,21 +1,21 @@
 from typing import TypedDict, Iterable, Reversible
 from threading import Thread
-from sys import exit
 from time import sleep
-from colorama import Fore, Style
+from sys import exit
+from sys import stdout as STDOUT
 
 import logging
-import sys
 
 try:
     import boto3
+    from colorama import Fore, Style
 except ImportError:
-    print(f"boto3 is not installed for your interpreter.")
+    print(f"boto3 or colorama is not installed for your interpreter.")
     exit(1)
 
 
 logger = logging.getLogger()
-logging.basicConfig(stream=sys.stdout)
+logging.basicConfig(stream=STDOUT)
 logger.setLevel(logging.INFO)
 
 REGION = "ap-northeast-2"
@@ -28,13 +28,13 @@ def get_template_body(path: str) -> str:
     return body
 
 
-def create_stack(stack_param: dict) -> TypedDict:
-    response = client.create_stack(**stack_param)
+def create_stack(stack: dict) -> TypedDict:
+    response = client.create_stack(**stack)
     return response
 
 
-def update_stack(stack_param: dict) -> TypedDict:
-    response = client.update_stack(**stack_param)
+def update_stack(stack: dict) -> TypedDict:
+    response = client.update_stack(**stack)
     return response
 
 
@@ -43,10 +43,9 @@ def delete_stack(stack_name) -> None:
     return None
 
 
-def get_capabilities(template_body):
-    response = client.validate_template(TemplateBody=template_body)
-
-    return response.get("Capabilities", [])
+def get_template_summary(template_body):
+    response = client.get_template_summary(TemplateBody=template_body)
+    return response
 
 
 def wait_stack(operation, stack_name, delay=5, max_attempts=120):
@@ -59,23 +58,36 @@ def wait_stack(operation, stack_name, delay=5, max_attempts=120):
     return True
 
 
-def build_template_params(stack_name, template_path, parameters: dict):
+def build_template(stack_name, template_path, user_parameters: dict):
     template_body = get_template_body(template_path)
-    param = {
+    summary = get_template_summary(template_body)
+
+    parameters = []
+    for parameter in summary["Parameters"]:
+        try:
+            parameters.append(
+                {
+                    "ParameterKey": parameter["ParameterKey"],
+                    "ParameterValue": user_parameters[parameter["ParameterKey"]],
+                    "UsePreviousValue": False,
+                }
+            )
+        except KeyError:
+            parameters.append(
+                {"ParameterKey": parameter["ParameterKey"], "UsePreviousValue": True}
+            )
+
+    stack = {
         "StackName": stack_name,
         "TemplateBody": template_body,
-        "Parameters": [
-            {"ParameterKey": key, "ParameterValue": value}
-            for key, value in parameters.items()
-        ],
+        "Parameters": parameters,
+        "Capabilities": summary.get("Capabilities", []),
     }
 
-    param["Capabilities"] = get_capabilities(template_body)
-
-    return param
+    return stack
 
 
-def deploy_in_order(stack_params: Iterable[dict], method=create_stack):
+def deploy_in_order(stacks: Iterable[dict], method=create_stack):
     if method == create_stack:
         wait_operation = "stack_create_complete"
         message = "created"
@@ -86,17 +98,17 @@ def deploy_in_order(stack_params: Iterable[dict], method=create_stack):
         raise ValueError(method)
 
     try:
-        for param in stack_params:
-            response = method(param)
-            param["StackId"] = response["StackId"]
-            logger.info(f"{param['StackName']} is being {message}")
+        for stack in stacks:
+            response = method(stack)
+            stack["StackId"] = response["StackId"]
+            logger.info(f"{stack['StackName']} is being {message}")
 
-            wait_stack(wait_operation, param["StackName"])
-            logger.info(f"{param['StackName']} is {message}")
+            wait_stack(wait_operation, stack["StackName"])
+            logger.info(f"{stack['StackName']} is {message}")
     except Exception as e:
         logger.error(e)
 
-    return stack_params
+    return stacks
 
 
 def deploy_parallel(stack_sequences: Iterable[Iterable[dict]], method=create_stack):
@@ -113,9 +125,9 @@ def deploy_parallel(stack_sequences: Iterable[Iterable[dict]], method=create_sta
     return stack_sequences
 
 
-def delete_in_reverse_order(stack_params: Reversible[dict]):
+def delete_in_reverse_order(stacks: Reversible[dict]):
     try:
-        for param in reversed(stack_params):
+        for param in reversed(stacks):
             delete_stack(param["StackName"])
             logger.info(f"{param['StackName']} is being deleted")
 
@@ -125,7 +137,7 @@ def delete_in_reverse_order(stack_params: Reversible[dict]):
     except Exception as e:
         logger.error(e)
 
-    return stack_params
+    return stacks
 
 
 def delete_parallel(stack_sequences: Iterable[Iterable[dict]]):
@@ -143,30 +155,29 @@ def delete_parallel(stack_sequences: Iterable[Iterable[dict]]):
 
 def describe_sequence(stack_sequences: Iterable[Iterable[dict]]):
     for num, stacks in enumerate(stack_sequences, start=1):
-        stack_infos = [
-            {
-                "StackName": stack["StackName"],
-                "Capabilities": stack["Capabilities"],
-                "Parameters": stack["Parameters"],
-            }
-            for stack in stacks
-        ]
-        print(f"{Fore.WHITE}===== Stack sequence {num} =====")
+        print(f"{Fore.WHITE}===== Stack sequence {num} ====={Fore.RESET}")
 
-        for info in stack_infos:
+        for stack in stacks:
             print(
-                f"{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{info['StackName']}\t{info['Capabilities']}{Style.RESET_ALL}"
-                if info["Capabilities"]
-                else f"{Fore.LIGHTGREEN_EX}{info['StackName']}"
+                f"{Fore.LIGHTGREEN_EX}{Style.BRIGHT}{stack['StackName']}\t{stack['Capabilities']}{Fore.RESET}{Style.RESET_ALL}"
+                if stack["Capabilities"]
+                else f"{Fore.LIGHTGREEN_EX}{stack['StackName']}"
             )
-            parameters = [
-                f"{Fore.LIGHTBLACK_EX}{param['ParameterKey']}: {Fore.WHITE}{Style.BRIGHT}{param['ParameterValue']}{Style.RESET_ALL}"
-                for param in info["Parameters"]
-            ]
-            print("\t" + "\n\t".join(parameters))
+            not_specified_params = []
+            for param in stack["Parameters"]:
+                if param["UsePreviousValue"]:
+                    not_specified_params.append(param["ParameterKey"])
+                else:
+                    print(
+                        f"\t{Fore.LIGHTBLACK_EX}{param['ParameterKey']}: {Fore.WHITE}{Style.BRIGHT}{param['ParameterValue']}{Fore.RESET}{Style.RESET_ALL}"
+                    )
+            if not_specified_params:
+                print(
+                    f"\t{Fore.LIGHTBLACK_EX}Use previous value: {', '.join(not_specified_params)}{Fore.RESET}"
+                )
 
-        print(f"{Fore.RESET}{Style.RESET_ALL}")
     return
+
 
 def check_user_admission():
     retry = 0
@@ -184,29 +195,26 @@ def check_user_admission():
 
 
 if __name__ == "__main__":
-    codecommit_template_path = "C:\\skills\\template\\blue-green\\codecommit.yaml"
-    codebuild_template_path = "C:\\skills\\template\\blue-green\\codebuild.yaml"
-    codedeploy_template_path = "C:\\skills\\template\\blue-green\\codedeploy.yaml"
-    codepipeline_template_path = "C:\\skills\\template\\blue-green\\codepipeline.yaml"
+    TEMPLATE_DIRECTORY = "C:/skills/template/"
 
     apps = ["customer", "order", "product", "stress"]
     ARTIFACT_BUCKET = "wsi-hmoon-artifacts"
     CODECOMMIT_BRANCH = "main"
 
-    codecommit_stack_params = [
-        build_template_params(
+    codecommit_stack = (
+        build_template(
             stack_name=f"dev-{app_name}-git",
-            template_path=codecommit_template_path,
-            parameters={"RepositoryName": f"dev-{app_name}"},
+            template_path=TEMPLATE_DIRECTORY + "blue-green/codecommit.yaml",
+            user_parameters={"RepositoryName": f"dev-{app_name}"},
         )
         for app_name in apps
-    ]
+    )
 
-    codebuild_stack_params = [
-        build_template_params(
+    codebuild_stack = (
+        build_template(
             stack_name=f"dev-{app_name}-build",
-            template_path=codebuild_template_path,
-            parameters={
+            template_path=TEMPLATE_DIRECTORY + "blue-green/codebuild.yaml",
+            user_parameters={
                 "CodeBuildProjectName": f"dev-{app_name}-build",
                 "CodeCommitRepositoryName": f"dev-{app_name}",
                 "CodeCommitBranchName": CODECOMMIT_BRANCH,
@@ -215,13 +223,13 @@ if __name__ == "__main__":
             },
         )
         for app_name in apps
-    ]
+    )
 
-    codedeploy_stack_params = [
-        build_template_params(
+    codedeploy_stack = (
+        build_template(
             stack_name=f"dev-{app_name}-deploy",
-            template_path=codedeploy_template_path,
-            parameters={
+            template_path=TEMPLATE_DIRECTORY + "blue-green/codedeploy.yaml",
+            user_parameters={
                 "CodeDeployApplicationName": f"dev-{app_name}-deploy",
                 "ECSServiceName": app_name,
                 "TargetGroup1Name": f"{app_name}-1",
@@ -229,13 +237,13 @@ if __name__ == "__main__":
             },
         )
         for app_name in apps
-    ]
+    )
 
-    codepipeline_stack_params = [
-        build_template_params(
+    codepipeline_stack = (
+        build_template(
             stack_name=f"{REGION}-{app_name}-pipeilne",
-            template_path=codepipeline_template_path,
-            parameters={
+            template_path=TEMPLATE_DIRECTORY + "blue-green/codepipeline.yaml",
+            user_parameters={
                 "CodePipelineName": f"dev-{app_name}-pipeline",
                 "CodeCommitRepositoryName": f"dev-{app_name}",
                 "CodeCommitBranchName": CODECOMMIT_BRANCH,
@@ -246,24 +254,34 @@ if __name__ == "__main__":
             },
         )
         for app_name in apps
-    ]
+    )
+
+    vpc_stack = (
+        build_template(
+            stack_name=f"vpc",
+            template_path=TEMPLATE_DIRECTORY + "vpc_data_subnet.yaml",
+            user_parameters={"NamePrefix": "wsi"},
+        )
+        for _ in range(1)
+    )
 
     try:
-        # Define sequences which deploy commit, build, pipeline in order.
+        ### Define sequences which deploy commit, build, pipeline in order.
         sequences = list(
             zip(
-                codecommit_stack_params,
-                codebuild_stack_params,
-                codedeploy_stack_params,
-                codepipeline_stack_params,
+                codecommit_stack,
+                codebuild_stack,
+                codedeploy_stack,
+                codepipeline_stack,
+                # vpc_stack,
             )
         )
 
-        # Inform a user what are going to be executed
+        ### Describe stacks before deployment
         describe_sequence(sequences)
         check_user_admission()
 
-        # Execute
+        ### Execute
         delete_parallel(sequences)
         # deploy_parallel(sequences, method=update_stack)
     except Exception as e:
