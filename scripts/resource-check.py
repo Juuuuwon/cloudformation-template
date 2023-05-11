@@ -144,13 +144,16 @@ def get_instances():
         ]
         instance_type = instance["InstanceType"]
         az = instance["Placement"]["AvailabilityZone"]
-        security_groups = ", ".join(
-            [
-                ", ".join([group["GroupName"] for group in eni["Groups"]])
-                for eni in instance["NetworkInterfaces"]
-            ]
+        security_groups = list(
+            set(
+                [
+                    group["GroupName"]
+                    for eni in instance["NetworkInterfaces"]
+                    for group in eni["Groups"]
+                ]
+            )
         )
-        instance_profile = instance["IamInstanceProfile"]["Arn"]
+        instance_profile = instance["IamInstanceProfile"]["Arn"].split("/")[-1]
         monitoring = instance["Monitoring"]["State"] == "enabled"
         uptime = datetime.now(timezone.utc) - instance["LaunchTime"]
         uptime_string = f"{uptime.seconds // 3600}h {uptime.seconds // 60 % 60}m ago"
@@ -226,8 +229,14 @@ def get_target_groups():
     return result
 
 
-def get_buckets():
+def get_buckets(ignore_prefixes=["aws", "cf-templates"]):
     buckets = s3.list_buckets()["Buckets"]
+
+    buckets = [
+        bucket
+        for bucket in buckets
+        if not bucket["Name"].startswith(tuple(ignore_prefixes))
+    ]
 
     bucket_reports = []
     for bucket in buckets:
@@ -331,6 +340,9 @@ def check_security_groups(resources: list[dict], level=LEVEL.WARN):
                 and description
             ):
                 resource["rules"].remove(rule_definition)
+            # Pass if rule is referencing itself.
+            elif target == resource["name"] and description:
+                resource["rules"].remove(rule_definition)
             # Pass if egress rule is for 80, 443 outbuond any open
             elif (
                 protocol == "tcp"
@@ -404,7 +416,7 @@ def check_instances(resources: list[dict], level=LEVEL.WARN):
             del instance["uptime"]
         if instance["monitoring"] or LEVEL.WARN < level:
             del instance["monitoring"]
-        if len(instance["security_group"].split(",")) == 1 or LEVEL.WARN < level:
+        if len(instance["security_group"]) == 1 or LEVEL.WARN < level:
             del instance["security_group"]
         if LEVEL.INFO < level:
             del instance["az"]
@@ -438,13 +450,7 @@ if __name__ == "__main__":
     pprint_resources(check_security_groups(security_groups, level=LEVEL.WARN))
 
     # Check bucket configurations
-    buckets = get_buckets()
-    buckets = [
-        bucket
-        for bucket in buckets
-        if not bucket["name"].startswith("aws")
-        and not bucket["name"].startswith("cf-templates")
-    ]
+    buckets = get_buckets(ignore_prefixes=["aws", "cf-templates"])
     pprint_resources(check_buckets(buckets, level=LEVEL.WARN))
 
     ##
