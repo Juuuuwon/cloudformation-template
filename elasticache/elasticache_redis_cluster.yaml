@@ -15,10 +15,56 @@ Parameters:
     Description: "The project name for provisioned this resources"
     Default: wsi
 
-  NamePrefix:
+  CacheName:
     Type: String
     Description: "The prefix of resource's Name tag"
-    Default: wsi
+    Default: wsi-redis-cluster
+
+  CacheParameterGroupFamily:
+    Type: String
+    Default: redis7
+
+  EngineVersion:
+    Type: String
+    Description: Version of redis cluster. aws elasticache describe-cache-engine-versions --engine redis --cache-parameter-group-family redis7
+    Default: "7.0"
+
+  CacheNodeType:
+    Type: String
+    Description: Cache node type 
+    Default: cache.m6g.large
+
+  ShardCount:
+    Type: Number
+    Default: 2
+
+  ReplicaCountPerShard:
+    Type: Number
+    Description: Consider subnet counts to be equal to 1(primary) + replicas
+    Default: 1
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Tag configuration"
+        Parameters:
+          - Project
+          - Owner
+      - Label:
+          default: "Cache Configuration"
+        Parameters:
+          - CacheName
+          - CacheParameterGroupFamily
+          - EngineVersion
+          - CacheNodeType
+          - ShardCount
+          - ReplicaCountPerShard
+      - Label:
+          default: "Cache Network Configuration"
+        Parameters:
+          - SubnetIds
+          - SecurityGroupIds
 
 Resources:
   #
@@ -27,7 +73,7 @@ Resources:
   ElasticacheLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/elasticache/${NamePrefix}-redis-cluster"
+      LogGroupName: !Sub "/elasticache/${CacheName}"
       RetentionInDays: 7 # days
 
   #
@@ -38,7 +84,7 @@ Resources:
     Properties:
       # memcached1.4 | memcached1.5 | memcached1.6
       # redis2.6 | redis2.8 | redis3.2 | redis4.0 | redis5.0 | redis6.x
-      CacheParameterGroupFamily: redis6.x
+      CacheParameterGroupFamily: !Ref CacheParameterGroupFamily
       Description: "This is redis cluster parameter group"
       Properties:
         cluster-enabled: "yes"
@@ -49,7 +95,7 @@ Resources:
   ElasticacheSubnetGroup:
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
-      CacheSubnetGroupName: !Sub "${NamePrefix}-redis-cluster-subnetgroup"
+      CacheSubnetGroupName: !Sub "${CacheName}-subnetgroup"
       Description: "This is redis cluster subnet group"
       SubnetIds: !Ref SubnetIds
 
@@ -60,13 +106,13 @@ Resources:
     Type: AWS::ElastiCache::ReplicationGroup
     DeletionPolicy: Delete
     Properties:
-      ReplicationGroupId: !Sub "${NamePrefix}-redis-cluster"
+      ReplicationGroupId: !Sub "${CacheName}"
       ReplicationGroupDescription: "This is Elasticache Redis (cluster mode enabled)"
       Engine: redis # memcached | redis
-      EngineVersion: "6.2" # aws elasticache describe-cache-engine-versions
-      CacheNodeType: cache.m6g.large
-      NumNodeGroups: 3 # shard number
-      ReplicasPerNodeGroup: 2
+      EngineVersion: !Ref EngineVersion # aws elasticache describe-cache-engine-versions
+      CacheNodeType: !Ref CacheNodeType
+      NumNodeGroups: !Ref ShardCount
+      ReplicasPerNodeGroup: !Ref ReplicaCountPerShard
       Port: 6379
       CacheParameterGroupName: !Ref ElasticacheParameterGroup
       CacheSubnetGroupName: !Ref ElasticacheSubnetGroup
