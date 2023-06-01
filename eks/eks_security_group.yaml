@@ -69,7 +69,7 @@ Resources:
       IpProtocol: tcp
       FromPort: !Ref ApplicationPort
       ToPort: !Ref ApplicationPort
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
+      DestinationSecurityGroupId: !Ref AppNodegroupSecurityGroup
 
   #
   # Application security group
@@ -157,64 +157,64 @@ Resources:
   #
   # Application security group
   #
-  AppSecurityGroup:
+  AppNodegroupSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupName: !Sub "${NamePrefix}-app-sg"
+      GroupName: !Sub "${NamePrefix}-app-nodegroup-sg"
       GroupDescription: "The security group for application"
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-app-sg"
+          Value: !Sub "${NamePrefix}-app-nodegroup-sg"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
 
-  AppSecurityGroupIngressALB:
+  AppNodegroupSecurityGroupIngressALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref AppSecurityGroup
+      GroupId: !Ref AppNodegroupSecurityGroup
       Description: "from ALB"
       IpProtocol: tcp
       FromPort: !Ref ApplicationPort
       ToPort: !Ref ApplicationPort
       SourceSecurityGroupId: !Ref ALBSecurityGroup
 
-  AppSecurityGroupEgressRDS:
+  AppNodegroupSecurityGroupEgressRDS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      GroupId: !Ref AppSecurityGroup
+      GroupId: !Ref AppNodegroupSecurityGroup
       Description: "to RDS"
       IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
       DestinationSecurityGroupId: !Ref RDSSecurityGroup
 
-  # AppSecurityGroupEgressRDSOther:
+  # AppNodegroupSecurityGroupEgressRDSOther:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     GroupId: !Ref AppSecurityGroup
+  #     GroupId: !Ref AppNodegroupSecurityGroup
   #     Description: "to RDS"
   #     IpProtocol: tcp
   #     FromPort: 3306
   #     ToPort: 3306
   #     CidrIp: 10.20.0.0/16
 
-  # AppSecurityGroupEgressCache:
+  # AppNodegroupSecurityGroupEgressCache:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     GroupId: !Ref AppSecurityGroup
+  #     GroupId: !Ref AppNodegroupSecurityGroup
   #     Description: "to cache"
   #     IpProtocol: tcp
   #     FromPort: 6379
   #     ToPort: 6379
   #     DestinationSecurityGroupId: !Ref CacheSecurityGroup
 
-  # AppSecurityGroupEgressCacheOther:
+  # AppNodegroupSecurityGroupEgressCacheOther:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     GroupId: !Ref AppSecurityGroup
+  #     GroupId: !Ref AppNodegroupSecurityGroup
   #     Description: "to cache"
   #     IpProtocol: tcp
   #     FromPort: 6379
@@ -228,11 +228,11 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VpcId
-      GroupName: !Sub "${NamePrefix}-addon-sg"
+      GroupName: !Sub "${NamePrefix}-addon-nodegroup-sg"
       GroupDescription: "The security group for addon"
       Tags:
         - Key: Name
-          Value: !Sub "${NamePrefix}-addon-sg"
+          Value: !Sub "${NamePrefix}-addon-nodegroup-sg"
         - Key: Project
           Value: !Ref Project
         - Key: Owner
@@ -273,7 +273,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
-      SourceSecurityGroupId: !Ref AppSecurityGroup
+      SourceSecurityGroupId: !Ref AppNodegroupSecurityGroup
 
   # RDSSecurityGroupIngressAppOther:
   #   Type: AWS::EC2::SecurityGroupIngress
@@ -338,7 +338,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 443
       ToPort: 443
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
+      DestinationSecurityGroupId: !Ref AppNodegroupSecurityGroup
 
   ClusterSecurityGroupEgressNodegroupEphemeral:
     Type: AWS::EC2::SecurityGroupEgress
@@ -348,7 +348,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 1024
       ToPort: 65535
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
+      DestinationSecurityGroupId: !Ref AppNodegroupSecurityGroup
 
   # #
   # # Cache security group
@@ -375,7 +375,7 @@ Resources:
   #     IpProtocol: tcp
   #     FromPort: 6379
   #     ToPort: 6379
-  #     SourceSecurityGroupId: !Ref AppSecurityGroup
+  #     SourceSecurityGroupId: !Ref AppNodegroupSecurityGroup
 
   # CacheSecurityGroupIngressAppOther:
   #   Type: AWS::EC2::SecurityGroupIngress
