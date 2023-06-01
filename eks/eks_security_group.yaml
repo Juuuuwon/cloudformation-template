@@ -40,9 +40,9 @@ Resources:
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "The security group for ALB"
-      GroupName: !Sub "${NamePrefix}-alb-sg"
       VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-alb-sg"
+      GroupDescription: "The security group for ALB"
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-alb-sg"
@@ -51,37 +51,118 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  ALBSecurityGroupIngress1:
+  ALBSecurityGroupIngressInternet:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "allow all traffic from anywhere"
       GroupId: !Ref ALBSecurityGroup
-      # SourceSecurityGroupId: !Ref ALBSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "from internet"
+      IpProtocol: tcp
       FromPort: 80
       ToPort: 80
+      CidrIp: 0.0.0.0/0
 
-  ALBSecurityGroupEgress1:
+  ALBSecurityGroupEgressApp:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to application"
       GroupId: !Ref ALBSecurityGroup
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "to application"
+      IpProtocol: tcp
       FromPort: !Ref ApplicationPort
       ToPort: !Ref ApplicationPort
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
+
+  #
+  # Application security group
+  #
+  NodegroupSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-nodegroup-sg"
+      GroupDescription: "The security group for EKS nodegroup"
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-nodegroup-sg"
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  NodegroupSecurityGroupIngressSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "from nodegroup"
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref NodegroupSecurityGroup
+
+  NodegroupSecurityGroupIngressClusterHTTPS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "from cluster"
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref ClusterSecurityGroup
+
+  NodegroupSecurityGroupIngressClusterEphemeral:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "from cluster"
+      IpProtocol: tcp
+      FromPort: 1024
+      ToPort: 65535
+      SourceSecurityGroupId: !Ref ClusterSecurityGroup
+
+  NodegroupSecurityGroupEgressSelf:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "to nodegroup"
+      IpProtocol: -1
+      DestinationSecurityGroupId: !Ref NodegroupSecurityGroup
+
+  NodegroupSecurityGroupEgressCluster:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "to cluster"
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !Ref ClusterSecurityGroup
+
+  NodegroupSecurityGroupEgressHTTPS:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "to internet"
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  NodegroupSecurityGroupEgressHTTP:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref NodegroupSecurityGroup
+      Description: "to internet"
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
   #
   # Application security group
   #
   AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "The security group for application"
-      GroupName: !Sub "${NamePrefix}-app-sg"
       VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-app-sg"
+      GroupDescription: "The security group for application"
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-app-sg"
@@ -90,169 +171,65 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  AppSecurityGroupIngressSelf:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from itself"
-      GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: !Ref ApplicationPort
-      # ToPort: !Ref ApplicationPort
-
-  AppSecurityGroupIngressAddon:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from addon"
-      GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref AddonSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: !Ref ApplicationPort
-      # ToPort: !Ref ApplicationPort
-
   AppSecurityGroupIngressALB:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "allow all traffic from ALB"
       GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref ALBSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "from ALB"
+      IpProtocol: tcp
       FromPort: !Ref ApplicationPort
       ToPort: !Ref ApplicationPort
+      SourceSecurityGroupId: !Ref ALBSecurityGroup
 
-  AppSecurityGroupIngressClusterEphemeral:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from cluster"
-      GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref ClusterSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 1024
-      ToPort: 65535
-
-  AppSecurityGroupIngressClusterHTTPS:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow https from cluster"
-      GroupId: !Ref AppSecurityGroup
-      SourceSecurityGroupId: !Ref ClusterSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
-
-  AppSecurityGroupEgressSelf:
+  AppSecurityGroupEgressRDS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to itself"
       GroupId: !Ref AppSecurityGroup
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
-
-  AppSecurityGroupEgressAddon:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow traffic to addon"
-      GroupId: !Ref AppSecurityGroup
-      DestinationSecurityGroupId: !Ref AddonSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
-
-  AppSecurityGroupEgressHTTPS:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow https traffic to anywhere"
-      GroupId: !Ref AppSecurityGroup
-      # DestinationSecurityGroupId: !Ref AppSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
-
-  AppSecurityGroupEgressHTTP:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow http traffic to anywhere"
-      GroupId: !Ref AppSecurityGroup
-      # DestinationSecurityGroupId: !Ref AppSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 80
-      ToPort: 80
-
-  AppSecurityGroupEgressCluster:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow https to cluster"
-      GroupId: !Ref AppSecurityGroup
-      DestinationSecurityGroupId: !Ref ClusterSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
-
-  AppSecurityGroupEgressRDS1:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow RDS"
-      GroupId: !Ref AppSecurityGroup
-      DestinationSecurityGroupId: !Ref RDSSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "to RDS"
+      IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
+      DestinationSecurityGroupId: !Ref RDSSecurityGroup
 
-  # AppSecurityGroupEgressRDS2:
+  # AppSecurityGroupEgressRDSOther:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     Description: "allow RDS"
   #     GroupId: !Ref AppSecurityGroup
-  #     # DestinationSecurityGroupId: !Ref RDSSecurityGroup
-  #     CidrIp: 10.20.0.0/16
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     Description: "to RDS"
+  #     IpProtocol: tcp
   #     FromPort: 3306
   #     ToPort: 3306
-
-  # AppSecurityGroupEgressCache1:
-  #   Type: AWS::EC2::SecurityGroupEgress
-  #   Properties:
-  #     Description: "allow cache"
-  #     GroupId: !Ref AppSecurityGroup
-  #     DestinationSecurityGroupId: !Ref CacheSecurityGroup
-  #     # CidrIp: 10.20.0.0/16
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-  #     FromPort: 6379
-  #     ToPort: 6379
-
-  # AppSecurityGroupEgressCache2:
-  #   Type: AWS::EC2::SecurityGroupEgress
-  #   Properties:
-  #     Description: "allow cache"
-  #     GroupId: !Ref AppSecurityGroup
-  #     # DestinationSecurityGroupId: !Ref RDSSecurityGroup
   #     CidrIp: 10.20.0.0/16
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+
+  # AppSecurityGroupEgressCache:
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties:
+  #     GroupId: !Ref AppSecurityGroup
+  #     Description: "to cache"
+  #     IpProtocol: tcp
   #     FromPort: 6379
   #     ToPort: 6379
+  #     DestinationSecurityGroupId: !Ref CacheSecurityGroup
+
+  # AppSecurityGroupEgressCacheOther:
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties:
+  #     GroupId: !Ref AppSecurityGroup
+  #     Description: "to cache"
+  #     IpProtocol: tcp
+  #     FromPort: 6379
+  #     ToPort: 6379
+  #     CidrIp: 10.20.0.0/16
+
   #
   # Addon security group
   #
   AddonSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "The security group for addon"
-      GroupName: !Sub "${NamePrefix}-addon-sg"
       VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-addon-sg"
+      GroupDescription: "The security group for addon"
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-addon-sg"
@@ -261,104 +238,15 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  AddonSecurityGroupIngressSelf:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from itself"
-      GroupId: !Ref AddonSecurityGroup
-      SourceSecurityGroupId: !Ref AddonSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: !Ref AddonlicationPort
-      # ToPort: !Ref AddonlicationPort
-
-  AddonSecurityGroupIngressApp:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from app"
-      GroupId: !Ref AddonSecurityGroup
-      SourceSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: !Ref AddonlicationPort
-      # ToPort: !Ref AddonlicationPort
-
-  AddonSecurityGroupIngressClusterEphemeral:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from cluster"
-      GroupId: !Ref AddonSecurityGroup
-      SourceSecurityGroupId: !Ref ClusterSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 1024
-      ToPort: 65535
-
-  AddonSecurityGroupIngressClusterHTTPS:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow https from cluster"
-      GroupId: !Ref AddonSecurityGroup
-      SourceSecurityGroupId: !Ref ClusterSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
-
-  AddonSecurityGroupEgressSelf:
+  AddonSecurityGroupEgressSSH:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to itself"
       GroupId: !Ref AddonSecurityGroup
-      DestinationSecurityGroupId: !Ref AddonSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
-
-  AddonSecurityGroupEgressApp:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow traffic to app"
-      GroupId: !Ref AddonSecurityGroup
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
-
-  AddonSecurityGroupEgressHTTPS:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow https traffic to anywhere"
-      GroupId: !Ref AddonSecurityGroup
-      # DestinationSecurityGroupId: !Ref AddonSecurityGroup
+      Description: "to git repository"
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
       CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
-
-  AddonSecurityGroupEgressHTTP:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow http traffic to anywhere"
-      GroupId: !Ref AddonSecurityGroup
-      # DestinationSecurityGroupId: !Ref AddonSecurityGroup
-      CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 80
-      ToPort: 80
-
-  AddonSecurityGroupEgressCluster:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow DNS query"
-      GroupId: !Ref AddonSecurityGroup
-      DestinationSecurityGroupId: !Ref ClusterSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
 
   #
   # RDS security group
@@ -366,9 +254,9 @@ Resources:
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "The security group for RDS"
-      GroupName: !Sub "${NamePrefix}-rds-sg"
       VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-rds-sg"
+      GroupDescription: "The security group for RDS"
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-rds-sg"
@@ -377,40 +265,33 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  RDSSecurityGroupIngress1:
+  RDSSecurityGroupIngressApp:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "allow all traffic from application"
       GroupId: !Ref RDSSecurityGroup
-      SourceSecurityGroupId: !Ref AppSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "from app"
+      IpProtocol: tcp
       FromPort: 3306
       ToPort: 3306
+      SourceSecurityGroupId: !Ref AppSecurityGroup
 
-  # RDSSecurityGroupIngress2:
+  # RDSSecurityGroupIngressAppOther:
   #   Type: AWS::EC2::SecurityGroupIngress
   #   Properties:
-  #     Description: "allow all traffic from application"
   #     GroupId: !Ref RDSSecurityGroup
-  #     # SourceSecurityGroupId: !Ref AppSecurityGroup
-  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-  #     CidrIp: 10.20.0.0/16
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     Description: "from app"
+  #     IpProtocol: tcp
   #     FromPort: 3306
   #     ToPort: 3306
+  #     CidrIp: 10.20.0.0/16
 
-  RDSSecurityGroupEgress1:
+  RDSSecurityGroupEgressDefault:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow all traffic to anywhere"
       GroupId: !Ref RDSSecurityGroup
-      # DestinationSecurityGroupId: !Ref AppSecurityGroup
+      Description: "DELETE_ME"
+      IpProtocol: -1
       CidrIp: 0.0.0.0/0
-      IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-      # FromPort: 443
-      # ToPort: 443
 
   #
   # Cluster security group
@@ -418,9 +299,9 @@ Resources:
   ClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "The security group for Cluster"
-      GroupName: !Sub "${NamePrefix}-cluster-sg"
       VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-cluster-sg"
+      GroupDescription: "The security group for Cluster"
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-cluster-sg"
@@ -429,85 +310,45 @@ Resources:
         - Key: Owner
           Value: !Ref Owner
 
-  ClusterSecurityGroupIngress1:
+  ClusterSecurityGroupIngressNodegroup:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      Description: "allow traffic from app"
       GroupId: !Ref ClusterSecurityGroup
-      SourceSecurityGroupId: !Ref AppSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "from nodegroup"
+      IpProtocol: tcp
       FromPort: 443
       ToPort: 443
-
-  ClusterSecurityGroupIngress2:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      Description: "allow traffic from addon"
-      GroupId: !Ref ClusterSecurityGroup
-      SourceSecurityGroupId: !Ref AddonSecurityGroup
-      # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
+      SourceSecurityGroupId: !Ref NodegroupSecurityGroup
 
   # ClusterSecurityGroupIngressInternet:
   #   Type: AWS::EC2::SecurityGroupIngress
   #   Properties:
-  #     Description: "allow traffic from local machine"
   #     GroupId: !Ref ClusterSecurityGroup
-  #     # SourceSecurityGroupId: !Ref AddonSecurityGroup
-  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-  #     CidrIp: 175.195.57.176/32
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     Description: "from local machine"
+  #     IpProtocol: tcp
   #     FromPort: 443
   #     ToPort: 443
+  #     CidrIp: 175.195.57.176/32
 
-  ClusterSecurityGroupEgressAppEphemeral:
+  ClusterSecurityGroupEgressNodegroupHTTPS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to app"
       GroupId: !Ref ClusterSecurityGroup
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 1024
-      ToPort: 65535
-
-  ClusterSecurityGroupEgressAddonEphemeral:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow traffic to addon"
-      GroupId: !Ref ClusterSecurityGroup
-      DestinationSecurityGroupId: !Ref AddonSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 1024
-      ToPort: 65535
-
-  ClusterSecurityGroupEgressAppHTTPS:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      Description: "allow traffic to app"
-      GroupId: !Ref ClusterSecurityGroup
-      DestinationSecurityGroupId: !Ref AppSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+      Description: "to nodegroup"
+      IpProtocol: tcp
       FromPort: 443
       ToPort: 443
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
 
-  ClusterSecurityGroupEgressAddonHTTPS:
+  ClusterSecurityGroupEgressNodegroupEphemeral:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
-      Description: "allow traffic to addon"
       GroupId: !Ref ClusterSecurityGroup
-      DestinationSecurityGroupId: !Ref AddonSecurityGroup
-      # CidrIp: 0.0.0.0/0
-      IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
-      FromPort: 443
-      ToPort: 443
+      Description: "to nodegroup"
+      IpProtocol: tcp
+      FromPort: 1024
+      ToPort: 65535
+      DestinationSecurityGroupId: !Ref AppSecurityGroup
 
   # #
   # # Cache security group
@@ -515,9 +356,9 @@ Resources:
   # CacheSecurityGroup:
   #   Type: AWS::EC2::SecurityGroup
   #   Properties:
-  #     GroupDescription: "The security group for Cache"
-  #     GroupName: !Sub "${NamePrefix}-cache-sg"
   #     VpcId: !Ref VpcId
+  #     GroupName: !Sub "${NamePrefix}-cache-sg"
+  #     GroupDescription: "The security group for cache"
   #     Tags:
   #       - Key: Name
   #         Value: !Sub "${NamePrefix}-cache-sg"
@@ -526,37 +367,30 @@ Resources:
   #       - Key: Owner
   #         Value: !Ref Owner
 
-  # CacheSecurityGroupIngress1:
+  # CacheSecurityGroupIngressApp:
   #   Type: AWS::EC2::SecurityGroupIngress
   #   Properties:
-  #     Description: "allow from application"
   #     GroupId: !Ref CacheSecurityGroup
-  #     # SourceSecurityGroupId: !Ref AppSecurityGroup
-  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-  #     CidrIp: 10.20.0.0/16
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+  #     Description: "from app"
+  #     IpProtocol: tcp
   #     FromPort: 6379
   #     ToPort: 6379
-
-  # CacheSecurityGroupIngress2:
-  #   Type: AWS::EC2::SecurityGroupIngress
-  #   Properties:
-  #     Description: "allow from application"
-  #     GroupId: !Ref CacheSecurityGroup
   #     SourceSecurityGroupId: !Ref AppSecurityGroup
-  #     # SourcePrefixListId: pl-63a5400a # you can check prefixlistID in console.
-  #     # CidrIp: 10.20.0.0/16
-  #     IpProtocol: tcp # -1(all) , tcp , udp , icmp , icmpv6
+
+  # CacheSecurityGroupIngressAppOther:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     GroupId: !Ref CacheSecurityGroup
+  #     Description: "from app"
+  #     IpProtocol: tcp
   #     FromPort: 6379
   #     ToPort: 6379
+  #     CidrIp: 10.20.0.0/16
 
-  # CacheSecurityGroupEgress1:
+  # CacheSecurityGroupEgressDefault:
   #   Type: AWS::EC2::SecurityGroupEgress
   #   Properties:
-  #     Description: "allow all traffic to anywhere"
   #     GroupId: !Ref CacheSecurityGroup
-  #     # DestinationSecurityGroupId: !Ref AppSecurityGroup
+  #     Description: "DELETE_ME"
+  #     IpProtocol: -1
   #     CidrIp: 0.0.0.0/0
-  #     IpProtocol: -1 # -1(all) , tcp , udp , icmp , icmpv6
-  #     # FromPort: 443
-  #     # ToPort: 443
