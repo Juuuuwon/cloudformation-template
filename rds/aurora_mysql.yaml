@@ -44,7 +44,7 @@ Metadata:
           - Project
           - Owner
       - Label:
-          default: "ALB Configuration"
+          default: "RDS Configuration"
         Parameters:
           - NamePrefix
           - InstanceType
