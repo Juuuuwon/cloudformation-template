@@ -16,29 +16,37 @@ Parameters:
     Description: "Docker image to run on the container"
     Default: hmoon630/sample-fastapi
 
-  ContainerPort:
-    Type: Number
-    Description: "Port number of the container"
-    Default: 8080
-
-  ContainerCPU:
+  TaskCPU:
     Type: Number
     Description: "vCPU allocation of the container"
     Default: 256
 
-  ContainerMemory:
+  TaskMemory:
     Type: Number
     Description: "Memory allocation of the container"
     Default: 512
 
-  ContainerHealthCheckEndpoint:
+  ContainerArguments:
+    Type: CommaDelimitedList
+    Description: "(Optional) Docker CMD arguments. Spaces in string are trimmed"
+
+  HealthcheckCommand:
+    Type: String
+    Description: "Select healthcheck command. curl or wget is required for the image"
+    AllowedValues:
+      - wget
+      - curl
+    Default: curl
+
+  HealthCheckEndpoint:
     Type: String
     Description: "Helath check endpoint"
     Default: "/healthcheck"
 
-  ContainerArguments:
-    Type: CommaDelimitedList
-    Description: "(Optional) Docker CMD arguments. Spaces in string are trimmed"
+  ContainerPort:
+    Type: Number
+    Description: "Port number of the container"
+    Default: 8080
 
   Project:
     Type: String
@@ -52,6 +60,8 @@ Parameters:
 
 Conditions:
   ArgumentsExist: !Not [!Equals [!Select ["0", !Ref ContainerArguments], ""]]
+  UsingCurl: !Equals [!Ref HealthcheckCommand, "curl"]
+  IsFargate: !Equals [!Ref TaskCompatability, "FARGATE"]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -62,11 +72,15 @@ Metadata:
           - TaskName
           - TaskCompatability
           - ContainerImage
-          - ContainerPort
-          - ContainerHealthCheckEndpoint
-          - ContainerCPU
-          - ContainerMemory
+          - TaskCPU
+          - TaskMemory
           - ContainerArguments
+      - Label:
+          default: "Healthcheck Configuration"
+        Parameters:
+          - HealthcheckCommand
+          - HealthCheckEndpoint
+          - ContainerPort
       - Label:
           default: "Tag configuration"
         Parameters:
@@ -91,16 +105,6 @@ Resources:
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
-      # Policies:
-      #   - PolicyName: dynamodb-query
-      #     PolicyDocument:
-      #       Version: "2012-10-17"
-      #       Statement:
-      #         - Effect: Allow
-      #           Action:
-      #             - 'dynamodb:Query'
-      #             - 'dynamodb:Scan'
-      #           Resource: '*'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSAppSyncPushToCloudWatchLogs
@@ -127,15 +131,6 @@ Resources:
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
-      # Policies:
-      #   - PolicyName: get-secret
-      #     PolicyDocument:
-      #       Version: "2012-10-17"
-      #       Statement:
-      #         - Effect: Allow
-      #           Action:
-      #             - "secretsmanager:GetSecretValue"
-      #           Resource: "*"
       Tags:
         - Key: Project
           Value: !Ref Project
@@ -162,71 +157,81 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       Family: !Ref TaskName
+      RequiresCompatibilities:
+        - !Ref TaskCompatability
+      Cpu: !Ref TaskCPU
+      Memory: !Ref TaskMemory
+      NetworkMode: awsvpc
+      # Volumes:
+      #   - Name: log_volume
+      #     EFSVolumeConfiguration:
+      #       FilesystemId: FILE_SYSTEM
+      #       RootDirectory: /
+      #       AuthorizationConfig:
+      #         IAM: ENABLED
+      #         AccessPointId: ACCESS_POINT
+      #       TransitEncryption: ENABLED
       ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
       TaskRoleArn: !GetAtt TaskRole.Arn
-      NetworkMode: awsvpc # awsvpc | bridge | host | none
-      RequiresCompatibilities: # EC2 | FARGATE | EXTERNAL
-        - !Ref TaskCompatability
-      Cpu: !Ref ContainerCPU
-      Memory: !Ref ContainerMemory
-      # EphemeralStorage:
-      #   EphemeralStorage
-      # PlacementConstraints:
-      #   - TaskDefinitionPlacementConstraint
-      # ProxyConfiguration: # app mesh
-      #   ProxyConfiguration
-      # RuntimePlatform:
-      #   RuntimePlatform
-      # Volumes:
-      #   - Volume
       ContainerDefinitions:
         - Name: !Ref TaskName
           Image: !Ref ContainerImage
-          Cpu: !Ref ContainerCPU
-          Memory: !Ref ContainerMemory
-          MemoryReservation: !Ref ContainerMemory
+          Cpu: !Ref TaskCPU
+          Memory: !Ref TaskMemory
+          Command: !If [ArgumentsExist, !Ref ContainerArguments, []]
           Essential: true
           Privileged: false
+          # MountPoints:
+          #   - ContainerPath: /var/log
+          #     ReadOnly: false
+          #     SourceVolume: log_volume
+          # Secrets:
+          #   - Name: credential
+          #     ValueFrom: SECRET_ARN
+          # Environment:
+          #   - Name: region
+          #     Value: !Ref AWS::Region
           PortMappings:
             - ContainerPort: !Ref ContainerPort
               HostPort: !Ref ContainerPort
-              Protocol: tcp # tcp | udp
+              Protocol: tcp
           HealthCheck:
             Command:
-              [
-                "CMD-SHELL",
-                !Sub "wget --no-verbose --tries=1 --spider http://localhost:${ContainerPort}${ContainerHealthCheckEndpoint} || exit 1",
-              ]
-            Interval: 15
+              - "CMD-SHELL"
+              - !If
+                - UsingCurl
+                - !Sub "curl --silent http://localhost:${ContainerPort}${HealthCheckEndpoint} || exit 1"
+                - !Sub "wget --no-verbose --tries=1 --spider http://localhost:${ContainerPort}${HealthCheckEndpoint} || exit 1"
+            Interval: 10
             Retries: 3
-            StartPeriod: 60
             Timeout: 5
+            StartPeriod: 10
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref CloudwatchLogGroup
               awslogs-region: !Ref AWS::Region
-          # FirelensConfiguration:
-          #   FirelensConfiguration
-          # EntryPoint:
-          #   - String
-          Command: !If [ArgumentsExist, !Ref ContainerArguments, []]
-
-          # Environment:
-          #   - KeyValuePair
-          # EnvironmentFiles:
-          #   - EnvironmentFile
-          # MountPoints:
-          #   - MountPoint
-          # RepositoryCredentials:
-          #   RepositoryCredentials
-          # Secrets:
-          #   - Secret
-          # StartTimeout: Integer
-          # StopTimeout: Integer
-          # SystemControls:
-          #   - SystemControl
-          # User: String
-          # VolumesFrom:
-          #   - VolumeFrom
-          # WorkingDirectory: String
+              awslogs-stream-prefix:
+                !If [IsFargate, !Ref TaskName, !Ref AWS::NoValue]
+        #   LogConfiguration:
+        #     LogDriver: awsfirelens
+        #     Options:
+        #       Name: cloudwatch
+        #       region: !Ref AWS::Region
+        #       log_group_name: !Ref CloudwatchLogGroup
+        #       log_stream_name: "$(ecs_task_id)"
+        #       log_key: log
+        # - Name: log_router
+        #   Image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable
+        #   Essential: true
+        #   FirelensConfiguration:
+        #     Type: fluentbit
+        #     Options:
+        #       enable-ecs-log-metadata: false
+        #   LogConfiguration:
+        #     LogDriver: awslogs
+        #     Options:
+        #       awslogs-group: /ecs/firelens
+        #       awslogs-region: !Ref AWS::Region
+        #       awslogs-stream-prefix: firelens
+        #       awslogs-create-group: true

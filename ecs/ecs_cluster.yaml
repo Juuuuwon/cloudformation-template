@@ -1,11 +1,22 @@
 Parameters:
-  AutoScalingGroupArn:
-    Type: String
-    Description: "The AutoScalingGroup Arn attached ecs cluster"
-
   ECSCluster:
     Type: String
-    Description: "The name of ecs cluster, will created"
+    Description: "ECS cluster name"
+
+  CapacityProvider:
+    Type: String
+    Description: "Capacity provider. FARGATE or EC2"
+    AllowedValues:
+      - "FARGATE"
+      - "EC2"
+
+  AutoScalingGroupArn:
+    Type: String
+    Description: "(Optional) For EC2 capacity provider"
+
+  EC2ProviderName:
+    Type: String
+    Description: "(Optional) Capacity provider name for EC2 type"
 
   Project:
     Type: String
@@ -17,23 +28,43 @@ Parameters:
     Description: "The team name for owned this resources"
     Default: hmoon
 
+Conditions:
+  IsEC2: !Equals [!Ref CapacityProvider, "EC2"]
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Cluster Configuration"
+        Parameters:
+          - ECSCluster
+          - CapacityProvider
+          - AutoScalingGroupArn
+          - EC2ProviderName
+      - Label:
+          default: "Tag Configuration"
+        Parameters:
+          - Project
+          - Owner
+
 Resources:
   #
   # ECS - Capacity Provider
   #
   EC2CapacityProvider:
     Type: AWS::ECS::CapacityProvider
+    Condition: IsEC2
     Properties:
+      Name: !Ref EC2ProviderName
       AutoScalingGroupProvider:
         AutoScalingGroupArn: !Ref AutoScalingGroupArn
         ManagedScaling:
           InstanceWarmupPeriod: 120
           MaximumScalingStepSize: 20
           MinimumScalingStepSize: 1
-          Status: ENABLED # DISABLED | ENABLED
-          TargetCapacity: 100 # 1 ~ 100 (%)
-        ManagedTerminationProtection: DISABLED # DISABLED | ENABLED
-      # Name: String
+          Status: ENABLED
+          TargetCapacity: 100
+        ManagedTerminationProtection: DISABLED
       Tags:
         - Key: Project
           Value: !Ref Project
@@ -48,16 +79,16 @@ Resources:
     Properties:
       ClusterName: !Ref ECSCluster
       CapacityProviders:
-        - !Ref EC2CapacityProvider
+        - !If [IsEC2, !Ref EC2CapacityProvider, "FARGATE"]
       ClusterSettings:
         - Name: containerInsights
           Value: enabled
       Configuration:
         ExecuteCommandConfiguration:
-          Logging: DEFAULT # DEFAULT | NONE | OVERRIDE
+          Logging: DEFAULT
       DefaultCapacityProviderStrategy:
-        - CapacityProvider: !Ref EC2CapacityProvider
-          Weight: 100 # 1 ~ 1000
+        - CapacityProvider: !If [IsEC2, !Ref EC2CapacityProvider, "FARGATE"]
+          Weight: 100
           Base: 0
       Tags:
         - Key: Project

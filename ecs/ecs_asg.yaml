@@ -1,22 +1,26 @@
 Parameters:
+  ECSCluster:
+    Type: String
+    Description: "The name of ecs cluster, created not yet"
+
   InstanceName:
     Type: String
     Description: "The name of instance created by auto scaling group"
-    Default: wsi-ecs-workernode
-
-  AMI:
-    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
-    Description: "The AMI for launched instances"
-    Default: "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
 
   InstanceType:
     Type: String
     Description: "Instance type. Be aware of cpu architecture type"
-    Default: c5.large
+    Default: t3.small
 
-  ECSCluster:
+  AMI:
     Type: String
-    Description: "The name of ecs cluster, created not yet"
+    Description: "The AMI for launched instances"
+    AllowedValues:
+      - /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
+      - /aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id
+      - /aws/service/bottlerocket/aws-ecs-1/x86_64/latest/image_id
+      - /aws/service/bottlerocket/aws-ecs-1/arm64/latest/image_id
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id
 
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
@@ -46,18 +50,30 @@ Metadata:
       - Label:
           default: "ASG Configuration"
         Parameters:
-          - InstanceName
-          - AMI
-          - InstanceType
           - ECSCluster
+          - InstanceName
+          - InstanceType
+          - AMI
           - KeyPair
-          - SecurityGroupIds
           - SubnetIds
+          - SecurityGroupIds
       - Label:
           default: "Tag Configuration"
         Parameters:
           - Project
           - Owner
+
+Conditions:
+  IsBottlerocket:
+    Fn::Or:
+      - !Equals [
+          !Ref AMI,
+          "/aws/service/bottlerocket/aws-ecs-1/x86_64/latest/image_id",
+        ]
+      - !Equals [
+          !Ref AMI,
+          "/aws/service/bottlerocket/aws-ecs-1/arm64/latest/image_id",
+        ]
 
 Resources:
   #
@@ -77,16 +93,6 @@ Resources:
             Principal:
               Service:
                 - ec2.amazonaws.com
-      # Policies:
-      #   - PolicyName: dynamodb-query
-      #     PolicyDocument:
-      #       Version: "2012-10-17"
-      #       Statement:
-      #         - Effect: Allow
-      #           Action:
-      #             - 'dynamodb:Query'
-      #             - 'dynamodb:Scan'
-      #           Resource: '*'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
@@ -102,7 +108,7 @@ Resources:
   InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      # InstanceProfileName: example-ec2-instance-profile
+      InstanceProfileName: !Sub "${InstanceName}-role"
       Path: /
       Roles:
         - !Ref Role
@@ -124,19 +130,17 @@ Resources:
               Iops: 3000
               Throughput: 125
               Encrypted: true
-              # KmsKeyId: String
         IamInstanceProfile:
-          Arn: !GetAtt InstanceProfile.Arn
-          # Name: String
-        ImageId: !Ref AMI
-        InstanceInitiatedShutdownBehavior: terminate # stop , terminate
+          Name: !Ref InstanceProfile
+        ImageId: !Sub "{{resolve:ssm:${AMI}}}"
+        InstanceInitiatedShutdownBehavior: terminate
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyPair
         Monitoring:
           Enabled: true
         SecurityGroupIds: !Ref SecurityGroupIds
         TagSpecifications:
-          - ResourceType: instance # instance, volume
+          - ResourceType: instance
             Tags:
               - Key: Name
                 Value: !Ref InstanceName
@@ -144,7 +148,7 @@ Resources:
                 Value: !Ref Project
               - Key: Owner
                 Value: !Ref Owner
-          - ResourceType: volume # instance, volume
+          - ResourceType: volume
             Tags:
               - Key: Name
                 Value: !Ref InstanceName
@@ -153,12 +157,18 @@ Resources:
               - Key: Owner
                 Value: !Ref Owner
         UserData:
-          Fn::Base64: !Sub | ### Bootstrapping container instances
-            #!/bin/bash
-            cat <<'EOF' >> /etc/ecs/ecs.config
-            ECS_CLUSTER=${ECSCluster}
-            ECS_LOGLEVEL=info
-            EOF
+          Fn::Base64: !If
+            - IsBottlerocket
+            - !Sub |
+              [settings.ecs]
+              cluster = "${ECSCluster}"
+            - !Sub |
+              #!/bin/bash
+              cat <<'EOF' >> /etc/ecs/ecs.config
+              ECS_CLUSTER=${ECSCluster}
+              ECS_LOGLEVEL=info
+              EOF
+
       TagSpecifications:
         - ResourceType: launch-template
           Tags:
@@ -175,23 +185,22 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
+      VPCZoneIdentifier: !Ref SubnetIds
       AutoScalingGroupName: !Ref InstanceName
-      # CapacityRebalance: Boolean
-      Cooldown: "120"
-      DesiredCapacityType: units # units , vcpu , memory-mib
-      DesiredCapacity: "2"
       MinSize: "2"
       MaxSize: "20"
+      Cooldown: "120"
+      DesiredCapacityType: units
+      HealthCheckType: EC2
       HealthCheckGracePeriod: 60
-      HealthCheckType: EC2 # EC2 , ELB
-      NewInstancesProtectedFromScaleIn: false
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
-        Version: !GetAtt LaunchTemplate.LatestVersionNumber # DefaultVersionNumber , LatestVersionNumber
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
       Tags:
-        - PropagateAtLaunch: true
-          Key: Name
+        - Key: Name
           Value: !Ref InstanceName
-      # TargetGroupARNs:
-      #   - String
-      VPCZoneIdentifier: !Ref SubnetIds
+          PropagateAtLaunch: true
+
+Outputs:
+  ResolvedAMI:
+    Value: !Sub "{{resolve:ssm:${AMI}}}"
