@@ -73,7 +73,7 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "VPC tag configuration"
+          default: "Tag configuration"
         Parameters:
           - Project
           - Owner
@@ -98,32 +98,32 @@ Resources:
   #
   # ELBv2 - Target Group
   #
-  TargetGroup:
+  TargetGroup1:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
+      Name: !Ref TargetGroupName
+      TargetType: !Ref TargetType
+      IpAddressType: ipv4
+      Protocol: HTTP
+      ProtocolVersion: HTTP1
+      Port: !Ref TargetPort
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 30
+      VpcId: !Ref VpcId
       HealthCheckEnabled: true
-      HealthCheckIntervalSeconds: 15
+      HealthCheckProtocol: HTTP
       HealthCheckPath: !Ref HealthCheckPath
       HealthCheckPort: !Ref TargetPort
-      HealthCheckProtocol: HTTP # HTTP , HTTPS
-      HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
-      IpAddressType: ipv4 # ipv4 , ipv6
-      Name: !Ref TargetGroupName
-      Port: !Ref TargetPort
-      Protocol: HTTP # HTTP , HTTPS
-      ProtocolVersion: HTTP1 # GRPC , HTTP1 , HTTP2
+      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 15
       Tags:
         - Key: Project
           Value: !Ref Project
         - Key: Owner
           Value: !Ref Owner
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: 30
-      TargetType: !Ref TargetType # instance , ip , lambda , alb
-      VpcId: !Ref VpcId
 
   #
   # ELBv2 - Internet-facing ALB
@@ -132,21 +132,21 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Ref ALBName
-      Type: application # application , network , gateway
-      Scheme: !Ref ALBScheme # internal , internet-facing
-      IpAddressType: ipv4 # ipv4 , ipv6
+      Type: application
+      Scheme: !Ref ALBScheme
+      IpAddressType: ipv4
       LoadBalancerAttributes:
         - Key: routing.http2.enabled
           Value: true
         - Key: access_logs.s3.enabled
           Value: !Ref ALBAccessLogEnable
-        - "Fn::If":
-            - EnableALBAccessLog
-            - Key: access_logs.s3.bucket
-              Value: !Ref ALBAccessLogBucket
-            - !Ref "AWS::NoValue"
-      SecurityGroups: !Ref SecurityGroupIds
+        - !If
+          - EnableALBAccessLog
+          - Key: access_logs.s3.bucket
+            Value: !Ref ALBAccessLogBucket
+          - !Ref "AWS::NoValue"
       Subnets: !Ref SubnetIds
+      SecurityGroups: !Ref SecurityGroupIds
       Tags:
         - Key: Project
           Value: !Ref Project
@@ -159,9 +159,6 @@ Resources:
   ApplicationLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      # Certificates:
-      #   - CertificateArn: String
-      # SslPolicy: String
       DefaultActions:
         - Type: fixed-response
           FixedResponseConfig:
@@ -170,34 +167,36 @@ Resources:
             StatusCode: "404"
       LoadBalancerArn: !Ref ApplicationLoadBalancer
       Port: 80
-      Protocol: HTTP # GENEVE , HTTP , HTTPS , TCP , TCP_UDP , TLS , UDP
+      Protocol: HTTP
+
   ListenerRule1:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
-      Actions:
-        - Type: forward
-          TargetGroupArn: !Ref TargetGroup
+      ListenerArn: !Ref ApplicationLoadBalancerListener
       Conditions:
         - Field: path-pattern
           PathPatternConfig:
             Values:
               - /*
-      ListenerArn: !Ref ApplicationLoadBalancerListener
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup1
       Priority: 1
+
   # ListenerRule2:
   #   Type: AWS::ElasticLoadBalancingV2::ListenerRule
   #   Properties:
-  #     Actions:
-  #       - Type: fixed-response
-  #         FixedResponseConfig:
-  #           ContentType: text/plain
-  #           MessageBody: "Content not found"
-  #           StatusCode: "404"
+  #     ListenerArn: !Ref ApplicationLoadBalancerListener
   #     Conditions:
   #       - Field: path-pattern
   #         PathPatternConfig:
   #           Values:
   #             - /health
   #             - /healthcheck
-  #     ListenerArn: !Ref ApplicationLoadBalancerListener
+  #     Actions:
+  #       - Type: fixed-response
+  #         FixedResponseConfig:
+  #           ContentType: text/plain
+  #           MessageBody: "Content not found"
+  #           StatusCode: "404"
   #     Priority: 2
