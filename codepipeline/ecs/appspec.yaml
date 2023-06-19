@@ -1,6 +1,3 @@
-# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# SPDX-License-Identifier: MIT-0
-
 version: 0.0
 Resources:
   - TargetService:
@@ -9,8 +6,8 @@ Resources:
         TaskDefinition: "<TASK_DEFINITION>"
         LoadBalancerInfo:
           ContainerName: "webapp"
-          ContainerPort: 5000
+          ContainerPort: 8080
         CapacityProviderStrategy:
           - Base: 0
-            CapacityProvider: "example-ecs-cluster-EC2CapacityProvider-QWqu8ZG9Rvfl"
+            CapacityProvider: "FARGATE"
             Weight: 2

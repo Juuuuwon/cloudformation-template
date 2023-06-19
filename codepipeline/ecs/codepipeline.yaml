@@ -1,0 +1,478 @@
+Parameters:
+  CodePipelineName:
+    Type: String
+
+  ArtifactBucketName:
+    Description: "CodePipeline artifacts store"
+    Type: String
+
+  CodeCommitRepositoryName:
+    Type: String
+
+  CodeCommitBranchName:
+    Description: "Pipeline will be triggered if this branch is changed"
+    Type: String
+    Default: main
+
+  CodeBuildProjectName:
+    Type: String
+
+  ECRRepositoryName:
+    Type: String
+    Description: "CodeBuild will push images to this repository"
+
+  CodeDeployApplicationName:
+    Type: String
+    Description: "(Blue/Green)"
+
+  CodeDeployDeploymentGroupName:
+    Type: String
+    Description: "(Blue/Green)"
+
+  ECSClusterName:
+    Type: String
+    Description: "(Blue/Green, Standard)"
+
+  ECSServiceName:
+    Type: String
+    Description: "(Blue/Green, Standard)"
+
+  ListenerArn:
+    Type: String
+    Description: "(Blue/Green)"
+
+  TargetGroup1Name:
+    Type: String
+    Description: "(Blue/Green)"
+
+  TargetGroup2Name:
+    Type: String
+    Description: "(Blue/Green)"
+
+  CodeCommitCreation:
+    Type: String
+    AllowedValues:
+      - "Yes"
+      - "No"
+    Default: "Yes"
+
+  CodeBuildCreation:
+    Type: String
+    AllowedValues:
+      - "Yes"
+      - "No"
+    Default: "Yes"
+
+  CodeDeployCreation:
+    Type: String
+    Description: Applied only for Blue/Green
+    AllowedValues:
+      - "Yes"
+      - "No"
+    Default: "Yes"
+
+  CodeDeployDeploymentType:
+    Type: String
+    Description: CodeDeploy action type. None type will not create deploy stage.
+    AllowedValues:
+      - "Blue/Green"
+      - "Standard"
+      - "None"
+    Default: "Blue/Green"
+
+Conditions:
+  CreateCodeCommit: !Equals [!Ref CodeCommitCreation, "Yes"]
+  CreateCodeBuild: !Equals [!Ref CodeBuildCreation, "Yes"]
+  CreateCodeDeploy: !And
+    - !Equals [!Ref CodeDeployCreation, "Yes"]
+    - !Equals [!Ref CodeDeployDeploymentType, "Blue/Green"]
+  IsDeploymentStandard: !Equals [!Ref CodeDeployDeploymentType, "Standard"]
+  IsDeploymentBlueGreen: !Equals [!Ref CodeDeployDeploymentType, "Blue/Green"]
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Pipeline Configuration"
+        Parameters:
+          - CodePipelineName
+          - ArtifactBucketName
+      - Label:
+          default: "Commit Configuration"
+        Parameters:
+          - CodeCommitCreation
+          - CodeCommitRepositoryName
+          - CodeCommitBranchName
+      - Label:
+          default: "Build Configuration"
+        Parameters:
+          - CodeBuildCreation
+          - CodeBuildProjectName
+          - ECRRepositoryName
+      - Label:
+          default: "Deploy Configuration"
+        Parameters:
+          - CodeDeployDeploymentType
+          - CodeDeployCreation
+          - ECSClusterName
+          - ECSServiceName
+          - CodeDeployApplicationName
+          - CodeDeployDeploymentGroupName
+          - ListenerArn
+          - TargetGroup1Name
+          - TargetGroup2Name
+
+Resources:
+  #
+  # CodeCommit Repository
+  #
+  CodeCommitRepository:
+    Condition: CreateCodeCommit
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryName: !Ref CodeCommitRepositoryName
+
+  #
+  # Codebuild - Project
+  #
+  CodeBuildProject:
+    Condition: CreateCodeBuild
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref CodeBuildProjectName
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: "aws/codebuild/amazonlinux2-x86_64-standard:4.0"
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: IMAGE_REPO_NAME
+            Type: PLAINTEXT
+            Value: !Ref ECRRepositoryName
+      Source:
+        Type: CODECOMMIT
+        Location: !Sub "https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/${CodeCommitRepositoryName}"
+      SourceVersion: !Sub "refs/heads/${CodeCommitBranchName}"
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Artifacts:
+        Type: NO_ARTIFACTS
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+
+  #
+  # CodeDeploy
+  #
+  CodeDeployApplication:
+    Condition: CreateCodeDeploy
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: !Ref CodeDeployApplicationName
+      ComputePlatform: ECS
+
+  CodeDeployDeploymentGroup:
+    Condition: CreateCodeDeploy
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref CodeDeployApplication
+      DeploymentGroupName: !Ref CodeDeployDeploymentGroupName
+      ECSServices:
+        - ClusterName: !Ref ECSClusterName
+          ServiceName: !Ref ECSServiceName
+      LoadBalancerInfo:
+        TargetGroupPairInfoList:
+          - ProdTrafficRoute:
+              ListenerArns:
+                - !Ref ListenerArn
+            TargetGroups:
+              - Name: !Ref TargetGroup1Name
+              - Name: !Ref TargetGroup2Name
+      DeploymentStyle:
+        DeploymentOption: WITH_TRAFFIC_CONTROL
+        DeploymentType: BLUE_GREEN
+      BlueGreenDeploymentConfiguration:
+        DeploymentReadyOption:
+          ActionOnTimeout: CONTINUE_DEPLOYMENT
+        TerminateBlueInstancesOnDeploymentSuccess:
+          Action: TERMINATE
+          TerminationWaitTimeInMinutes: 0
+      DeploymentConfigName: CodeDeployDefault.ECSAllAtOnce
+      AutoRollbackConfiguration:
+        Enabled: true
+        Events:
+          - DEPLOYMENT_FAILURE
+      ServiceRoleArn: !GetAtt CodeDeployRole.Arn
+
+  #
+  # Codepipeline - Pipeline
+  #
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Location: !Ref ArtifactBucketName
+        Type: S3
+      Name: !Ref CodePipelineName
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeCommit
+                Version: 1
+              Configuration:
+                RepositoryName: !Ref CodeCommitRepositoryName
+                BranchName: !Ref CodeCommitBranchName
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: SourceArtifact
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref CodeBuildProjectName
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+        - !If
+          - IsDeploymentBlueGreen
+          - Name: Deploy
+            Actions:
+              - Name: DeployAction
+                ActionTypeId:
+                  Category: Deploy
+                  Owner: AWS
+                  Provider: CodeDeployToECS
+                  Version: 1
+                Configuration:
+                  ApplicationName: !Ref CodeDeployApplicationName
+                  DeploymentGroupName: !Ref CodeDeployDeploymentGroupName
+                  TaskDefinitionTemplateArtifact: BuildArtifact
+                  AppSpecTemplateArtifact: BuildArtifact
+                  Image1ArtifactName: BuildArtifact
+                  Image1ContainerName: IMAGE1_NAME
+                InputArtifacts:
+                  - Name: BuildArtifact
+                RunOrder: 1
+          - !If
+            - IsDeploymentStandard
+            - Name: Deploy
+              Actions:
+                - Name: DeployAction
+                  ActionTypeId:
+                    Category: Deploy
+                    Owner: AWS
+                    Provider: ECS
+                    Version: 1
+                  Configuration:
+                    ClusterName: !Ref ECSClusterName
+                    ServiceName: !Ref ECSServiceName
+                    FileName: imagedefinitions.json
+                  InputArtifacts:
+                    - Name: BuildArtifact
+            - !Ref AWS::NoValue
+
+  #
+  # EventBridge - Rule
+  #
+  EventBridgeRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      EventPattern:
+        source:
+          - aws.codecommit
+        detail-type:
+          - CodeCommit Repository State Change
+        resources:
+          - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepositoryName}"
+        detail:
+          event:
+            - referenceCreated
+            - referenceUpdated
+          referenceType:
+            - branch
+          referenceName:
+            - !Ref CodeCommitBranchName
+      Targets:
+        - Arn: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipelineName}"
+          RoleArn: !GetAtt EventBridgeRole.Arn
+          Id: !Ref CodePipelineName
+
+  #
+  # CodeBuild Role
+  #
+  CodeBuildRole:
+    Condition: CreateCodeBuild
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "codebuild-${CodeBuildProjectName}-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+      Policies:
+        - PolicyName: codebuild-default-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogStream"
+                  - "logs:CreateLogGroup"
+                  - "logs:PutLogEvents"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildProjectName}"
+                  - !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${CodeBuildProjectName}:*"
+              - Sid: s3
+                Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                  - "s3:GetObject"
+                  - "s3:GetObjectVersion"
+                  - "s3:GetBucketAcl"
+                  - "s3:GetBucketLocation"
+                Resource:
+                  - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucketName}"
+                  - !Sub "arn:${AWS::Partition}:s3:::${ArtifactBucketName}/*"
+              - Sid: codecommit
+                Effect: Allow
+                Action:
+                  - "codecommit:GitPull"
+                Resource: !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepositoryName}"
+              - Sid: ecr
+                Effect: Allow
+                Action:
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:CompleteLayerUpload"
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:InitiateLayerUpload"
+                  - "ecr:PutImage"
+                  - "ecr:UploadLayerPart"
+                Resource: "*"
+
+  #
+  # CodeDeploy Role
+  #
+  CodeDeployRole:
+    Condition: CreateCodeDeploy
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "codedeploy-${CodeDeployApplicationName}-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS
+
+  #
+  # CodePipeline Role
+  #
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "codepipeline-${CodePipelineName}-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+      Policies:
+        - PolicyName: codepipeline-default-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: passrole
+                Effect: Allow
+                Action:
+                  - "iam:PassRole"
+                Condition:
+                  StringEqualsIfExists:
+                    iam:PassedToService:
+                      - "ec2.amazonaws.com"
+                      - "ecs-tasks.amazonaws.com"
+                Resource: "*"
+              - Sid: codecommit
+                Effect: Allow
+                Action:
+                  - "codecommit:CancelUploadArchive"
+                  - "codecommit:GetBranch"
+                  - "codecommit:GetCommit"
+                  - "codecommit:GetRepository"
+                  - "codecommit:GetUploadArchiveStatus"
+                  - "codecommit:UploadArchive"
+                Resource: "*"
+              - Sid: codebuild
+                Effect: Allow
+                Action:
+                  - "codebuild:BatchGetBuilds"
+                  - "codebuild:StartBuild"
+                Resource: "*"
+              - Sid: codedeploy
+                Effect: Allow
+                Action:
+                  - "codedeploy:CreateDeployment"
+                  - "codedeploy:GetApplication"
+                  - "codedeploy:GetApplicationRevision"
+                  - "codedeploy:GetDeployment"
+                  - "codedeploy:GetDeploymentConfig"
+                  - "codedeploy:RegisterApplicationRevision"
+                Resource: "*"
+              - Sid: infrastructure
+                Effect: Allow
+                Action:
+                  - "ec2:*"
+                  - "elasticloadbalancing:*"
+                  - "autoscaling:*"
+                  - "cloudwatch:*"
+                  - "s3:*"
+                  - "ecs:*"
+                Resource: "*"
+
+  #
+  # IAM Role (for EventBridge Rule)
+  #
+  EventBridgeRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "eventbridge-${CodePipelineName}-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - events.amazonaws.com
+      Policies:
+        - PolicyName: eventbridge-pipeline-execution
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: "codepipeline:StartPipelineExecution"
+                Resource: !Sub "arn:${AWS::Partition}:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipelineName}"
