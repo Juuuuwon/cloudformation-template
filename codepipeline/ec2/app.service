@@ -1,0 +1,12 @@
+[Unit]
+Description=application
+After=network.target
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=/bin/bash -c 'python3 -B -u /opt/app/main.py > /opt/app/app.log 2>&1 < /dev/null'
+
+[Install]
+WantedBy=multi-user.target
