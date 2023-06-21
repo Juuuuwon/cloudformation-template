@@ -81,7 +81,7 @@ Resources:
               Service:
                 - ec2.amazonaws.com
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       Tags:
@@ -162,7 +162,6 @@ Resources:
       AutoScalingGroupName: !Ref AutoScalingGroupName
       Cooldown: "120"
       DesiredCapacityType: units
-      DesiredCapacity: "2"
       MinSize: "2"
       MaxSize: "20"
       HealthCheckGracePeriod: 60
