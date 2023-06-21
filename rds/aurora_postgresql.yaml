@@ -1,33 +1,202 @@
 Parameters:
+  ClusterName:
+    Type: String
+    Description: "RDS cluster name"
+    Default: wsi-aurora-cluster
+
+  InstanceType:
+    Type: String
+    Description: "DB instance type"
+    Default: db.r6g.large
+
+  EngineVersion:
+    Type: String
+    Description: "Aurora PostgreSQL version. aws rds describe-db-engine-versions --engine aurora-postgresql --query DBEngineVersions[].EngineVersion"
+    Default: "13.10"
+
+  ParameterGroupFamily:
+    Type: String
+    Description: "Family for DB parameter group"
+    Default: aurora-postgresql13
+
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
 
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
 
-  Owner:
-    Type: String
-    Description: "The team name for owned this resources"
-    Default: hmoon
-
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
     Default: wsi
 
-  NamePrefix:
+  Owner:
     Type: String
-    Description: "The prefix of resource's Name tag"
-    Default: wsi
+    Description: "The team name for owned this resources"
+    Default: hmoon
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "RDS Configuration"
+        Parameters:
+          - ClusterName
+          - InstanceType
+          - EngineVersion
+          - ParameterGroupFamily
+      - Label:
+          default: "RDS Network Configuration"
+        Parameters:
+          - SubnetIds
+          - SecurityGroupIds
+      - Label:
+          default: "Tag configuration"
+        Parameters:
+          - Project
+          - Owner
 
 Resources:
+  #
+  # RDS - DBCluster
+  #
+  DBCluster:
+    Type: AWS::RDS::DBCluster
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref ClusterName
+      EngineMode: provisioned
+      Engine: aurora-postgresql
+      EngineVersion: !Ref EngineVersion
+      Port: 5432
+      DatabaseName: exampledb
+      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VpcSecurityGroupIds: !Ref SecurityGroupIds
+
+      StorageEncrypted: true
+      EnableIAMDatabaseAuthentication: true
+      MasterUsername: !Sub "{{resolve:secretsmanager:${MasterUserSecret}:SecretString:username}}"
+      MasterUserPassword: !Sub "{{resolve:secretsmanager:${MasterUserSecret}:SecretString:password}}"
+      BackupRetentionPeriod: 7 # days
+      CopyTagsToSnapshot: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+      Tags:
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  #
+  # RDS - DBInstances
+  #
+  DBInstance1:
+    Type: AWS::RDS::DBInstance
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Sub "${ClusterName}-instance-1"
+      Engine: aurora-postgresql
+      DBInstanceClass: !Ref InstanceType
+      DBParameterGroupName: !Ref DBParameterGroup
+
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt MonitoringRole.Arn
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      Tags:
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  DBInstance2:
+    Type: AWS::RDS::DBInstance
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Sub "${ClusterName}-instance-2"
+      Engine: aurora-postgresql
+      DBInstanceClass: !Ref InstanceType
+      DBParameterGroupName: !Ref DBParameterGroup
+
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true
+      MonitoringInterval: 60
+      MonitoringRoleArn: !GetAtt MonitoringRole.Arn
+      EnablePerformanceInsights: true
+      PerformanceInsightsRetentionPeriod: 7
+      Tags:
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
+
+  #
+  # RDS - Parameter Group
+  #
+  DBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      DBClusterParameterGroupName: !Sub "${ClusterName}-cluster-parameter-group"
+      Description: "cluster parameter group"
+      Family: !Ref ParameterGroupFamily
+      Parameters:
+        timezone: UTC
+
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      DBParameterGroupName: !Sub "${ClusterName}-parameter-group"
+      Description: "parameter group"
+      Family: !Ref ParameterGroupFamily
+
+  #
+  # RDS - Subnet Group
+  #
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub "${ClusterName}-subnet-group"
+      DBSubnetGroupDescription: "subnet group"
+      SubnetIds: !Ref SubnetIds
+
+  #
+  # Secrets Manager - Secret
+  #
+  MasterUserSecret:
+    Type: AWS::SecretsManager::Secret
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      Name: !Sub "${ClusterName}/postgres"
+      Description: "This is secret of rds username and password"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "postgres"}'
+        GenerateStringKey: "password"
+        ExcludePunctuation: true
+        PasswordLength: 16
+
+  MasterUserSecretTargetAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      TargetType: AWS::RDS::DBCluster
+      SecretId: !Ref MasterUserSecret
+      TargetId: !Ref DBCluster
+
   #
   # IAM - Role (for RDS Monitoring)
   #
   MonitoringRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Sub "${NamePrefix}-aurora-postgresql-monitoring-role"
+      RoleName: !Sub "${ClusterName}-monitoring-role"
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
       AssumeRolePolicyDocument:
@@ -37,164 +206,3 @@ Resources:
             Principal:
               Service: "monitoring.rds.amazonaws.com"
             Action: "sts:AssumeRole"
-
-  #
-  # Secrets Manager - Secret
-  #
-  MasterUserSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub "${NamePrefix}-aurora-postgresql-cluster/postgres"
-      Description: "This is secret of rds username and password"
-      GenerateSecretString:
-        SecretStringTemplate: '{"username": "postgres"}'
-        GenerateStringKey: "password"
-        ExcludeCharacters: '"@/\'
-        PasswordLength: 16
-
-  #
-  # Secrets Manager - TargetAttachment
-  #
-  MasterUserSecretTargetAttachment:
-    Type: AWS::SecretsManager::SecretTargetAttachment
-    Properties:
-      SecretId: !Ref MasterUserSecret
-      TargetId: !Ref DBCluster
-      TargetType: AWS::RDS::DBCluster
-
-  #
-  # RDS - Parameter Group
-  #
-  DBClusterParameterGroup:
-    Type: AWS::RDS::DBClusterParameterGroup
-    Properties:
-      Description: "This is cluster parameter group of aurora-postgresql13"
-      Family: aurora-postgresql13
-      Parameters:
-        timezone: US/Eastern
-        synchronous_commit: "on"
-
-  #
-  # RDS - Parameter Group
-  #
-  DBParameterGroup:
-    Type: AWS::RDS::DBParameterGroup
-    Properties:
-      Description: "This is parameter group of aurora-postgresql13"
-      Family: aurora-postgresql13
-      # Parameters:
-      #   Key : Value
-
-  #
-  # RDS - Subnet Group
-  #
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: "This is subnet group of example"
-      DBSubnetGroupName: !Sub "${NamePrefix}-aurora-postgresql-subnetgroup"
-      SubnetIds: !Ref SubnetIds
-
-  #
-  # RDS - DBCluster
-  #
-  DBCluster:
-    Type: AWS::RDS::DBCluster
-    DeletionPolicy: Delete
-    Properties:
-      DBClusterIdentifier: !Sub "${NamePrefix}-aurora-postgresql-cluster"
-      Engine: aurora-postgresql # aurora (mysql5.6) , aurora-mysql (mysql5.7) , aurora-postgresql
-      EngineMode: provisioned # provisioned , serverless , parallelquery , global , multimaster
-      EngineVersion: "13.6"
-      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
-      DBSubnetGroupName: !Ref DBSubnetGroup
-      DatabaseName: exampledb
-      DeletionProtection: false
-      BackupRetentionPeriod: 7 # days
-      CopyTagsToSnapshot: true
-      EnableCloudwatchLogsExports: # postgresql
-        - postgresql
-      EnableIAMDatabaseAuthentication: true
-      MasterUsername:
-        !Join [
-          "",
-          [
-            "{{resolve:secretsmanager:",
-            !Ref MasterUserSecret,
-            ":SecretString:username}}",
-          ],
-        ]
-      MasterUserPassword:
-        !Join [
-          "",
-          [
-            "{{resolve:secretsmanager:",
-            !Ref MasterUserSecret,
-            ":SecretString:password}}",
-          ],
-        ]
-      Port: 5432
-      StorageEncrypted: true
-      # KmsKeyId: String
-      VpcSecurityGroupIds: !Ref SecurityGroupIds
-      Tags:
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  #
-  # RDS - DBInstance (first)
-  #
-  DBInstance1:
-    Type: AWS::RDS::DBInstance
-    DeletionPolicy: Delete
-    Properties:
-      DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-postgresql-instance-1"
-      Engine: aurora-postgresql
-      # EngineVersion: '13.6'
-      DBInstanceClass: db.r6g.large
-      DBParameterGroupName: !Ref DBParameterGroup
-      PubliclyAccessible: false
-      MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
-      MonitoringRoleArn: !GetAtt MonitoringRole.Arn
-      DeleteAutomatedBackups: false
-      AllowMajorVersionUpgrade: true
-      AutoMinorVersionUpgrade: true
-      EnablePerformanceInsights: true # it does support aurora postgresql
-      # PerformanceInsightsKMSKeyId: String
-      PerformanceInsightsRetentionPeriod: 7 # 7 , 731 (days)
-      Tags:
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  #
-  # RDS - DBInstance (second)
-  #
-  DBInstance2:
-    Type: AWS::RDS::DBInstance
-    DeletionPolicy: Delete
-    Properties:
-      DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub "${NamePrefix}-aurora-postgresql-instance-2"
-      Engine: aurora-postgresql
-      # EngineVersion: '13.6'
-      DBInstanceClass: db.r6g.large
-      DBParameterGroupName: !Ref DBParameterGroup
-      PubliclyAccessible: false
-      MonitoringInterval: 60 # 0 , 1 , 5 , 10 , 15 , 30 , 60
-      MonitoringRoleArn: !GetAtt MonitoringRole.Arn
-      DeleteAutomatedBackups: false
-      AllowMajorVersionUpgrade: true
-      AutoMinorVersionUpgrade: true
-      EnablePerformanceInsights: true # it does support aurora postgresql
-      # PerformanceInsightsKMSKeyId: String
-      PerformanceInsightsRetentionPeriod: 7 # 7 , 731 (days)
-      Tags:
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
