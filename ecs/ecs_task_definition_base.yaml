@@ -48,6 +48,14 @@ Parameters:
     Description: "Port number of the container"
     Default: 8080
 
+  LogDriver:
+    Type: String
+    Description: "Log driver which delivers logs to CloudWatch"
+    AllowedValues:
+      - "awslogs"
+      - "awsfirelens"
+    Default: awslogs
+
   Project:
     Type: String
     Description: "The project name for provisioned this resources"
@@ -62,6 +70,7 @@ Conditions:
   ArgumentsExist: !Not [!Equals [!Select ["0", !Ref ContainerArguments], ""]]
   UsingCurl: !Equals [!Ref HealthcheckCommand, "curl"]
   IsFargate: !Equals [!Ref TaskCompatability, "FARGATE"]
+  IsFirelens: !Equals [!Ref LogDriver, "awsfirelens"]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -75,6 +84,7 @@ Metadata:
           - TaskCPU
           - TaskMemory
           - ContainerArguments
+          - LogDriver
       - Label:
           default: "Healthcheck Configuration"
         Parameters:
@@ -131,6 +141,21 @@ Resources:
             Principal:
               Service:
                 - ecs-tasks.amazonaws.com
+      Policies: !If
+        - IsFirelens
+        - - PolicyName: firelens
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - "logs:CreateLogGroup"
+                    - "logs:CreateLogStream"
+                    - "logs:DescribeLogGroups"
+                    - "logs:DescribeLogStreams"
+                  Resource: "*"
+        - []
+
       Tags:
         - Key: Project
           Value: !Ref Project
@@ -206,32 +231,35 @@ Resources:
             Retries: 3
             Timeout: 5
             StartPeriod: 10
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref CloudwatchLogGroup
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix:
-                !If [IsFargate, !Ref TaskName, !Ref AWS::NoValue]
-        #   LogConfiguration:
-        #     LogDriver: awsfirelens
-        #     Options:
-        #       Name: cloudwatch
-        #       region: !Ref AWS::Region
-        #       log_group_name: !Ref CloudwatchLogGroup
-        #       log_stream_name: "$(ecs_task_id)"
-        #       log_key: log
-        # - Name: log_router
-        #   Image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable
-        #   Essential: true
-        #   FirelensConfiguration:
-        #     Type: fluentbit
-        #     Options:
-        #       enable-ecs-log-metadata: false
-        #   LogConfiguration:
-        #     LogDriver: awslogs
-        #     Options:
-        #       awslogs-group: /ecs/firelens
-        #       awslogs-region: !Ref AWS::Region
-        #       awslogs-stream-prefix: firelens
-        #       awslogs-create-group: true
+          LogConfiguration: !If
+            - IsFirelens
+            - LogDriver: awsfirelens
+              Options:
+                Name: cloudwatch
+                region: !Ref AWS::Region
+                log_group_name: !Ref CloudwatchLogGroup
+                log_stream_name: "$(ecs_task_id)"
+                log_key: log
+            - LogDriver: awslogs
+              Options:
+                awslogs-group: !Ref CloudwatchLogGroup
+                awslogs-region: !Ref AWS::Region
+                awslogs-stream-prefix:
+                  !If [IsFargate, !Ref TaskName, !Ref AWS::NoValue]
+        - !If
+          - IsFirelens
+          - Name: log_router
+            Image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable
+            Essential: true
+            FirelensConfiguration:
+              Type: fluentbit
+              Options:
+                enable-ecs-log-metadata: false
+            LogConfiguration:
+              LogDriver: awslogs
+              Options:
+                awslogs-group: /ecs/firelens
+                awslogs-region: !Ref AWS::Region
+                awslogs-stream-prefix: firelens
+                awslogs-create-group: true
+          - !Ref AWS::NoValue
