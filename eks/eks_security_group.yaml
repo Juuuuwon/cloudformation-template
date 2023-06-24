@@ -16,7 +16,6 @@ Parameters:
   NamePrefix:
     Type: String
     Description: "The prefix of resource's Name tag"
-    Default: wsi
 
   ApplicationPort:
     Type: Number
