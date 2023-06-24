@@ -3,11 +3,11 @@ Resources:
   - TargetService:
       Type: AWS::ECS::Service
       Properties:
-        TaskDefinition: "<TASK_DEFINITION>"
+        TaskDefinition: <TASK_DEFINITION>
         LoadBalancerInfo:
-          ContainerName: "webapp"
-          ContainerPort: 8080
+          ContainerName: CONTAINER_NAME
+          ContainerPort: CONTAINER_PORT
         CapacityProviderStrategy:
           - Base: 0
-            CapacityProvider: "FARGATE"
+            CapacityProvider: FARGATE
             Weight: 2
