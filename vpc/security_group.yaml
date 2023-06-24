@@ -23,15 +23,29 @@ Parameters:
     Description: "Port number for the application"
     Default: 80
 
-  # BastionSSHPort:
-  #   Type: Number
-  #   Description: "Port number for the bastion"
-  #   Default: 22
+  BastionSSHPort:
+    Type: Number
+    Description: "Port number for the bastion"
+    Default: 22
 
-  # BastionSSHCidr:
-  #   Type: String
-  #   Description: "Allowed Cidr IP range. https://checkip.amazonaws.com"
-  #   Default: 0.0.0.0/0
+  BastionSSHCidr:
+    Type: String
+    Description: "Allowed Cidr IP range. https://checkip.amazonaws.com"
+    Default: 0.0.0.0/0
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "VPC Configuration"
+        Parameters:
+          - VpcId
+          - NamePrefix
+          - ApplicationPort
+          - BastionSSHPort
+          - BastionSSHCidr
+          - Project
+          - Owner
 
 Resources:
   #
@@ -127,19 +141,19 @@ Resources:
       ToPort: 80
       CidrIp: 0.0.0.0/0
 
-  AppSecurityGroupEgressRDS:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref AppSecurityGroup
-      Description: "to RDS"
-      IpProtocol: tcp
-      FromPort: 3306
-      ToPort: 3306
-      CidrIp: 0.0.0.0/0
+  # AppSecurityGroupEgressRDS:
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties:
+  #     GroupId: !Ref AppSecurityGroup
+  #     Description: "to RDS"
+  #     IpProtocol: tcp
+  #     FromPort: 3306
+  #     ToPort: 3306
+  #     CidrIp: !Ref RDSSecurityGroup
 
-  #
-  # RDS security group
-  #
+  # #
+  # # RDS security group
+  # #
   # RDSSecurityGroup:
   #   Type: AWS::EC2::SecurityGroup
   #   Properties:
@@ -175,34 +189,34 @@ Resources:
   #
   # Bastion security group
   #
-  # BastionSecurityGroup:
-  #   Type: AWS::EC2::SecurityGroup
-  #   Properties:
-  #     VpcId: !Ref VpcId
-  #     GroupName: !Sub "${NamePrefix}-bastion-sg"
-  #     GroupDescription: "The security group for Bastion"
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Sub "${NamePrefix}-bastion-sg"
-  #       - Key: Project
-  #         Value: !Ref Project
-  #       - Key: Owner
-  #         Value: !Ref Owner
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupName: !Sub "${NamePrefix}-bastion-sg"
+      GroupDescription: "The security group for Bastion"
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-bastion-sg"
+        - Key: Project
+          Value: !Ref Project
+        - Key: Owner
+          Value: !Ref Owner
 
-  # BastionSecurityGroupIngress1:
-  #   Type: AWS::EC2::SecurityGroupIngress
-  #   Properties:
-  #     GroupId: !Ref BastionSecurityGroup
-  #     Description: "from local machine"
-  #     IpProtocol: tcp
-  #     FromPort: !Ref BastionSSHPort
-  #     ToPort: !Ref BastionSSHPort
-  #     CidrIp: !Ref BastionSSHCidr
+  BastionSecurityGroupIngress1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref BastionSecurityGroup
+      Description: "from local machine"
+      IpProtocol: tcp
+      FromPort: !Ref BastionSSHPort
+      ToPort: !Ref BastionSSHPort
+      CidrIp: !Ref BastionSSHCidr
 
-  # BastionSecurityGroupEgress1:
-  #   Type: AWS::EC2::SecurityGroupEgress
-  #   Properties:
-  #     GroupId: !Ref BastionSecurityGroup
-  #     Description: "to internet"
-  #     IpProtocol: -1
-  #     CidrIp: 0.0.0.0/0
+  BastionSecurityGroupEgress1:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref BastionSecurityGroup
+      Description: "to internet"
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
