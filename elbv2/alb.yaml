@@ -109,7 +109,7 @@ Resources:
       Port: !Ref TargetPort
       TargetGroupAttributes:
         - Key: deregistration_delay.timeout_seconds
-          Value: 30
+          Value: 10
       VpcId: !Ref VpcId
       HealthCheckEnabled: true
       HealthCheckProtocol: HTTP
@@ -118,7 +118,7 @@ Resources:
       HealthyThresholdCount: 2
       UnhealthyThresholdCount: 2
       HealthCheckTimeoutSeconds: 5
-      HealthCheckIntervalSeconds: 15
+      HealthCheckIntervalSeconds: 10
       Tags:
         - Key: Project
           Value: !Ref Project
