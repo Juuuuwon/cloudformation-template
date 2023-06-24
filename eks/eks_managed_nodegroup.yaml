@@ -70,7 +70,6 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub "${NodeGroupName}-role"
-      # Description: description
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -80,16 +79,6 @@ Resources:
             Principal:
               Service:
                 - ec2.amazonaws.com
-      # Policies:
-      #   - PolicyName: dynamodb-query
-      #     PolicyDocument:
-      #       Version: "2012-10-17"
-      #       Statement:
-      #         - Effect: Allow
-      #           Action:
-      #             - 'dynamodb:Query'
-      #             - 'dynamodb:Scan'
-      #           Resource: '*'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
@@ -106,7 +95,7 @@ Resources:
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      # LaunchTemplateName: example-eks-nodegroup-lt
+      LaunchTemplateName: !Sub "${NodeGroupName}-lt"
       LaunchTemplateData:
         BlockDeviceMappings:
           - DeviceName: /dev/xvda
@@ -117,14 +106,13 @@ Resources:
               Iops: 3000
               Throughput: 125
               Encrypted: true
-              # KmsKeyId: String
-        # InstanceInitiatedShutdownBehavior: terminate # stop , terminate
         InstanceType: !Ref InstanceType
         KeyName: !Ref KeyPair
-        # Monitoring:
+        Monitoring:
+          Enabled: true
         SecurityGroupIds: !Ref SecurityGroupIds
         TagSpecifications:
-          - ResourceType: instance # instance, volume
+          - ResourceType: instance
             Tags:
               - Key: Name
                 Value: !Ref NodeGroupName
@@ -132,7 +120,7 @@ Resources:
                 Value: !Ref Project
               - Key: Owner
                 Value: !Ref Owner
-          - ResourceType: volume # instance, volume
+          - ResourceType: volume
             Tags:
               - Key: Name
                 Value: !Ref NodeGroupName
@@ -149,21 +137,18 @@ Resources:
     Properties:
       NodegroupName: !Ref NodeGroupName
       AmiType: !Ref AMI
-      CapacityType: ON_DEMAND # ON_DEMAND | SPOT
       ClusterName: !Ref ClusterName
       ForceUpdateEnabled: false
       LaunchTemplate:
         Id: !Ref LaunchTemplate
-        # Name: String
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       NodeRole: !GetAtt Role.Arn
       ScalingConfig:
-        DesiredSize: 2 # It must be defined at first time. and after that it is recommended removing.
+        DesiredSize: 2
         MinSize: 2
         MaxSize: 20
       Subnets: !Ref SubnetIds
       UpdateConfig:
-        # MaxUnavailable: 100
         MaxUnavailablePercentage: 100
       Tags:
         Project: !Ref Project
