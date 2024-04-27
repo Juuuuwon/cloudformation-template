@@ -1,90 +1,82 @@
 Parameters:
   NamePrefix:
     Type: String
-    Description: "The prefix of resource's Name tag"
-    Default: wsi
+    Description: The prefix of resource's Name tag
+    Default: unicorn
 
   EnableFlowLog:
     Type: String
-    Description: "Enable VPC flow log. Logs will be delivered to cloudwatch log group, /aws/flow-log/<VPC_NAME>"
+    Description: Enable VPC flow log. Logs will be delivered to cloudwatch log group, /aws/flow-log/<VPC_NAME>
     AllowedValues:
       - "true"
       - "false"
-
-  DataSubnetCreation:
-    Type: String
-    Description: "Create data subnets which have no internet access"
-    AllowedValues:
-      - "Yes"
-      - "No"
-    Default: "Yes"
+    Default: "false"
 
   AZCount:
     Type: Number
-    Description: "How many AZs to deploy subnets"
+    Description: How many AZs to deploy subnets
     AllowedValues:
       - 2
       - 3
+    Default: 2
 
-  Project:
+  DataSubnetCreation:
     Type: String
-    Description: "The project name for provisioned this resources"
-    Default: wsi
-
-  Owner:
-    Type: String
-    Description: "The team name for owned this resources"
-    Default: hmoon
+    Description: Create data subnets with no internet access
+    AllowedValues:
+      - "Yes"
+      - "No"
+    Default: "No"
 
   VPCCidr:
     Description: Cidr block of VPC
     Type: String
-    Default: 10.10.0.0/16
+    Default: 10.0.0.0/16
 
   PublicSubnetACidr:
     Description: Cidr block of public subnet A
     Type: String
-    Default: 10.10.1.0/24
+    Default: 10.0.0.0/24
 
   PublicSubnetBCidr:
     Description: Cidr block of public subnet B
     Type: String
-    Default: 10.10.2.0/24
+    Default: 10.0.1.0/24
 
   PublicSubnetCCidr:
     Description: Cidr block of public subnet C
     Type: String
-    Default: 10.10.3.0/24
+    Default: 10.0.2.0/24
 
   PrivateSubnetACidr:
     Description: Cidr block of private subnet A
     Type: String
-    Default: 10.10.11.0/24
+    Default: 10.0.10.0/24
 
   PrivateSubnetBCidr:
     Description: Cidr block of private subnet B
     Type: String
-    Default: 10.10.12.0/24
+    Default: 10.0.11.0/24
 
   PrivateSubnetCCidr:
     Description: Cidr block of private subnet C
     Type: String
-    Default: 10.10.13.0/24
+    Default: 10.0.12.0/24
 
   DataSubnetACidr:
     Description: Cidr block of data subnet A
     Type: String
-    Default: 10.10.21.0/24
+    Default: 10.0.20.0/24
 
   DataSubnetBCidr:
     Description: Cidr block of data subnet B
     Type: String
-    Default: 10.10.22.0/24
+    Default: 10.0.21.0/24
 
   DataSubnetCCidr:
     Description: Cidr block of data subnet C
     Type: String
-    Default: 10.10.23.0/24
+    Default: 10.0.22.0/24
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -94,8 +86,11 @@ Metadata:
         Parameters:
           - NamePrefix
           - EnableFlowLog
-          - Project
-          - Owner
+      - Label:
+          default: "Subnet creation"
+        Parameters:
+          - AZCount
+          - DataSubnetCreation
       - Label:
           default: "Network CIDR Configuration"
         Parameters:
@@ -109,11 +104,6 @@ Metadata:
           - DataSubnetACidr
           - DataSubnetBCidr
           - DataSubnetCCidr
-      - Label:
-          default: "Subnet creation"
-        Parameters:
-          - DataSubnetCreation
-          - AZCount
 
 Conditions:
   CreateFlowLog: !Equals [!Ref EnableFlowLog, "true"]
@@ -124,9 +114,10 @@ Conditions:
     - !Condition CreateThirdSubnet
 
 Resources:
-  #
+  # ==================================================
   # VPC
-  #
+  # ==================================================
+
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -136,14 +127,11 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-vpc"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
-  #
-  # Public Subnet
-  #
+  # ==================================================
+  # Subnets
+  # ==================================================
+
   PublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
@@ -154,10 +142,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-public-subnet-a"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   PublicSubnetB:
     Type: AWS::EC2::Subnet
@@ -169,10 +153,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-public-subnet-b"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   PublicSubnetC:
     Type: AWS::EC2::Subnet
@@ -185,14 +165,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-public-subnet-c"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
-  #
-  # Private Subnet
-  #
   PrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
@@ -203,10 +176,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-private-subnet-a"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   PrivateSubnetB:
     Type: AWS::EC2::Subnet
@@ -218,10 +187,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-private-subnet-b"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   PrivateSubnetC:
     Type: AWS::EC2::Subnet
@@ -234,14 +199,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-private-subnet-c"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
-  #
-  # Data Subnet
-  #
   DataSubnetA:
     Type: AWS::EC2::Subnet
     Condition: CreateDataSubnet
@@ -253,10 +211,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-data-subnet-a"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   DataSubnetB:
     Type: AWS::EC2::Subnet
@@ -269,10 +223,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-data-subnet-b"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   DataSubnetC:
     Type: AWS::EC2::Subnet
@@ -285,86 +235,23 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-data-subnet-c"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-public-rt"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  PrivateRouteTableA:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-private-rt-a"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  PrivateRouteTableB:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-private-rt-b"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  PrivateRouteTableC:
-    Type: AWS::EC2::RouteTable
-    Condition: CreateThirdSubnet
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-private-rt-c"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  DataRouteTable:
-    Type: AWS::EC2::RouteTable
-    Condition: CreateDataSubnet
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub "${NamePrefix}-data-rt"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
-
-  #
+  # ==================================================
   # Gateways
-  #
+  # ==================================================
+
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-igw"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
 
   NatGatewayA:
     Type: AWS::EC2::NatGateway
@@ -374,10 +261,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-nat-a"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   NatGatewayB:
     Type: AWS::EC2::NatGateway
@@ -387,10 +270,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-nat-b"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   NatGatewayC:
     Type: AWS::EC2::NatGateway
@@ -401,10 +280,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-nat-c"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   NatGatewayAEIP:
     Type: AWS::EC2::EIP
@@ -414,10 +289,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-nat-a-eip"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   NatGatewayBEIP:
     Type: AWS::EC2::EIP
@@ -427,10 +298,6 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-nat-b-eip"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   NatGatewayCEIP:
     Type: AWS::EC2::EIP
@@ -441,19 +308,52 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${NamePrefix}-nat-c-eip"
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
-  #
-  # Route table attachments
-  #
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
+  # ==================================================
+  # Route tables
+  # ==================================================
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
     Properties:
-      InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-public-rt"
+
+  PrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-private-rt-a"
+
+  PrivateRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-private-rt-b"
+
+  PrivateRouteTableC:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateThirdSubnet
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-private-rt-c"
+
+  DataRouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: CreateDataSubnet
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${NamePrefix}-data-rt"
 
   DefaultPublicRoute:
     Type: AWS::EC2::Route
@@ -544,9 +444,10 @@ Resources:
       RouteTableId: !Ref DataRouteTable
       SubnetId: !Ref DataSubnetC
 
-  #
-  # VPC Flow Log
-  #
+  # ==================================================
+  # VPC Flow Logs
+  # ==================================================
+
   FlowLog:
     Type: AWS::EC2::FlowLog
     Condition: CreateFlowLog
@@ -561,7 +462,6 @@ Resources:
     Type: AWS::IAM::Role
     Condition: CreateFlowLog
     Properties:
-      RoleName: vpc-flow-log-role
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
