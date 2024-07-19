@@ -200,3 +200,61 @@ Resources:
   #           MessageBody: "Content not found"
   #           StatusCode: "404"
   #     Priority: 2
+
+  # WAF:
+  #   Type: AWS::WAFv2::WebACL
+  #   Properties:
+  #     DefaultAction:
+  #       Allow: {}
+  #     Scope: REGIONAL
+  #     VisibilityConfig:
+  #       SampledRequestsEnabled: true
+  #       CloudWatchMetricsEnabled: true
+  #       MetricName: alb-metric
+  #     Rules:
+  #       - Name: AWS-AWSManagedRulesAmazonIpReputationList
+  #         Priority: 0
+  #         OverrideAction:
+  #           None: {}
+  #           # Count: {}
+  #         Statement:
+  #           ManagedRuleGroupStatement:
+  #             Name: AWSManagedRulesAmazonIpReputationList
+  #             VendorName: AWS
+  #         VisibilityConfig:
+  #           SampledRequestsEnabled: true
+  #           CloudWatchMetricsEnabled: true
+  #           MetricName: AWS-AWSManagedRulesAmazonIpReputationList
+
+  #       - Name: AWS-AWSManagedRulesCommonRuleSet
+  #         Priority: 1
+  #         OverrideAction:
+  #           None: {}
+  #           # Count: {}
+  #         Statement:
+  #           ManagedRuleGroupStatement:
+  #             Name: AWSManagedRulesCommonRuleSet
+  #             VendorName: AWS
+  #         VisibilityConfig:
+  #           SampledRequestsEnabled: true
+  #           CloudWatchMetricsEnabled: true
+  #           MetricName: AWS-AWSManagedRulesCommonRuleSet
+
+  #       - Name: AWS-AWSManagedRulesKnownBadInputsRuleSet
+  #         Priority: 2
+  #         OverrideAction:
+  #           None: {}
+  #           # Count: {}
+  #         Statement:
+  #           ManagedRuleGroupStatement:
+  #             Name: AWSManagedRulesKnownBadInputsRuleSet
+  #             VendorName: AWS
+  #         VisibilityConfig:
+  #           SampledRequestsEnabled: true
+  #           CloudWatchMetricsEnabled: true
+  #           MetricName: AWS-AWSManagedRulesKnownBadInputsRuleSet
+  # WAFAssociation:
+  #   Type: AWS::WAFv2::WebACLAssociation
+  #   Properties:
+  #     ResourceArn: !Ref ApplicationLoadBalancer
+  #     WebACLArn: !GetAtt WAF.Arn
