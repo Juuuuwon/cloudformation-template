@@ -2,9 +2,17 @@ Parameters:
   OriginS3BucketName:
     Type: String
     Default: static-asset
-  OriginS3BucketRegion:
+
+  BucketRegion:
     Type: String
     Default: us-east-1
+
+  LoggingBucketName:
+    Type: String
+    Default: ""
+
+Conditions:
+  DisableLogging: !Equals [!Ref LoggingBucketName, ""]
 
 Resources:
   Distribution:
@@ -21,22 +29,39 @@ Resources:
               OriginKeepaliveTimeout: 5
               OriginProtocolPolicy: http-only
               OriginReadTimeout: 30
-          - DomainName: !Sub ${OriginS3BucketName}.s3.${OriginS3BucketRegion}.amazonaws.com
-            Id: "s3"
-            S3OriginConfig:
-              OriginAccessIdentity: ""
-            OriginAccessControlId: !GetAtt OAC.Id
+          # - DomainName: !Sub ${OriginS3BucketName}.s3.${BucketRegion}.amazonaws.com
+          #   Id: "s3"
+          #   S3OriginConfig:
+          #     OriginAccessIdentity: ""
+          #   OriginAccessControlId: !GetAtt OAC.Id
 
         DefaultCacheBehavior:
-          TargetOriginId: "s3"
+          # TargetOriginId: "s3"
+          # ViewerProtocolPolicy: "redirect-to-https" # 'allow-all'
+          # CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          # AllowedMethods:
+          #   - GET
+          #   - HEAD
+          # CachedMethods:
+          #   - GET
+          #   - HEAD
+          # Compress: true
+          TargetOriginId: "alb"
           ViewerProtocolPolicy: "redirect-to-https" # 'allow-all'
-          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # CachingOptimized
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # CachingDisabled
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3 # AllViewer
           AllowedMethods:
             - GET
             - HEAD
+            # - OPTIONS
+            # - PUT
+            # - POST
+            # - PATCH
+            # - DELETE
           CachedMethods:
             - GET
             - HEAD
+            # - OPTIONS
           Compress: true
         CacheBehaviors:
           - PathPattern: /v1/color
@@ -65,36 +90,38 @@ Resources:
         DefaultRootObject: "index.html"
         Comment: CloudFront
 
-        # Logging:
-        #   Bucket: mylogs.s3.us-east-1.amazonaws.com # BUCKET.s3.REGION.amazonaws.com
-        #   IncludeCookies: false
-        #   Prefix: cloudfront/
+        Logging: !If
+          - DisableLogging
+          - !Ref AWS::NoValue
+          - Bucket: !Sub ${LoggingBucketName}.s3.${BucketRegion}.amazonaws.com # BUCKET.s3.REGION.amazonaws.com
+            IncludeCookies: false
+            Prefix: cloudfront/
       Tags:
         - Key: Name
           Value: wsi-web-cdn
 
-  OAC:
-    Type: AWS::CloudFront::OriginAccessControl
-    Properties:
-      OriginAccessControlConfig:
-        Name: !Sub ${OriginS3BucketName}
-        OriginAccessControlOriginType: s3
-        SigningBehavior: always
-        SigningProtocol: sigv4
-  AssetsBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Sub ${OriginS3BucketName}
-      PolicyDocument:
-        Statement:
-          - Action: s3:GetObject
-            Effect: Allow
-            Resource: !Sub "arn:${AWS::Partition}:s3:::${OriginS3BucketName}/*"
-            Principal:
-              Service: cloudfront.amazonaws.com
-            Condition:
-              StringEquals:
-                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+  # OAC:
+  #   Type: AWS::CloudFront::OriginAccessControl
+  #   Properties:
+  #     OriginAccessControlConfig:
+  #       Name: !Sub ${OriginS3BucketName}
+  #       OriginAccessControlOriginType: s3
+  #       SigningBehavior: always
+  #       SigningProtocol: sigv4
+  # AssetsBucketPolicy:
+  #   Type: AWS::S3::BucketPolicy
+  #   Properties:
+  #     Bucket: !Sub ${OriginS3BucketName}
+  #     PolicyDocument:
+  #       Statement:
+  #         - Action: s3:GetObject
+  #           Effect: Allow
+  #           Resource: !Sub "arn:${AWS::Partition}:s3:::${OriginS3BucketName}/*"
+  #           Principal:
+  #             Service: cloudfront.amazonaws.com
+  #           Condition:
+  #             StringEquals:
+  #               AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}
   # {
   #     "Version": "2008-10-17",
   #     "Statement": [
