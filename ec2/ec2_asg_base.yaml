@@ -2,7 +2,7 @@ Parameters:
   AutoScalingGroupName:
     Type: String
     Description: "The Name of Auto Scaling Group"
-    Default: wsi-app
+    Default: skills-app
 
   SubnetIds:
     Type: List<AWS::EC2::Subnet::Id>
@@ -16,6 +16,7 @@ Parameters:
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
     Description: "The AMI for launched instances"
     Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+    # Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 
   InstanceType:
     Type: String
@@ -25,10 +26,14 @@ Parameters:
   KeyPair:
     Type: AWS::EC2::KeyPair::KeyName
     Description: "The Keypair for launched instances"
+    Default: ""
 
   SecurityGroupIds:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The Security Group Ids for launched instances"
+
+Conditions:
+  NoKeyPair: !Equals [!Ref KeyPair, ""]
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -69,6 +74,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+        # - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
   #
   # IAM Instance Profile
@@ -96,9 +102,47 @@ Resources:
           Name: !Ref InstanceProfile
 
         UserData:
-          Fn::Base64: ""
+          Fn::Base64: |
+            #!/bin/bash
 
-        KeyName: !Ref KeyPair
+            yum install -y amazon-cloudwatch-agent
+
+            mkdir -p /var/log/app/
+            touch /var/log/app/app.log
+
+            cat << EOF > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+            {
+              "logs": {
+                "logs_collected": {
+                  "files": {
+                    "collect_list": [
+                      {
+                        "file_path": "/var/log/app/app.log",
+                        "log_group_name": "/skills/app",
+                        "log_stream_name": "{instance_id}",
+                        "timezone": "Local"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+            EOF
+            systemctl enable amazon-cloudwatch-agent --now
+
+            mkdir -p /opt/app
+            cp /opt/app
+
+            wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+            aws s3 cp s3://mybucket/server .
+            chmod +x ./server
+
+            ./server > /var/log/app/app.log 2>&1 &
+
+        KeyName: !If
+          - NoKeyPair
+          - !Ref AWS::NoValue
+          - !Ref KeyPair
         Monitoring:
           Enabled: true
         MetadataOptions:
@@ -113,19 +157,10 @@ Resources:
               Throughput: 125
               Encrypted: true
         TagSpecifications:
-          - ResourceType: instance
-            Tags:
-              - Key: Name
-                Value: !Sub "${AutoScalingGroupName}-worker"
           - ResourceType: volume
             Tags:
               - Key: Name
-                Value: !Sub "${AutoScalingGroupName}-worker"
-      TagSpecifications:
-        - ResourceType: launch-template
-          Tags:
-            - Key: Name
-              Value: !Sub "${AutoScalingGroupName}-lt"
+                Value: !Sub "${AutoScalingGroupName}"
 
   #
   # Auto Scaling Group
@@ -138,15 +173,39 @@ Resources:
       DesiredCapacityType: units
       MinSize: "2"
       MaxSize: "20"
+      # DesiredCapacity: "2"
       HealthCheckGracePeriod: 60
       HealthCheckType: ELB
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MetricsCollection:
+        - Granularity: 1Minute
+          Metrics:
+            - GroupMinSize
+            - GroupMaxSize
+            - GroupDesiredCapacity
+            - GroupInServiceInstances
+            - GroupPendingInstances
+            - GroupStandbyInstances
+            - GroupTerminatingInstances
+            - GroupTotalInstances
+            - GroupInServiceCapacity
+            - GroupPendingCapacity
+            - GroupStandbyCapacity
+            - GroupTerminatingCapacity
+            - GroupTotalCapacity
+            - WarmPoolDesiredCapacity
+            - WarmPoolWarmedCapacity
+            - WarmPoolPendingCapacity
+            - WarmPoolTerminatingCapacity
+            - WarmPoolTotalCapacity
+            - GroupAndWarmPoolDesiredCapacity
+            - GroupAndWarmPoolTotalCapacity
       Tags:
         - PropagateAtLaunch: true
           Key: Name
-          Value: !Sub "${AutoScalingGroupName}-worker"
+          Value: !Sub "${AutoScalingGroupName}"
       TargetGroupARNs: !Ref TargetGroupARNs
       VPCZoneIdentifier: !Ref SubnetIds
 
@@ -165,3 +224,15 @@ Resources:
           PredefinedMetricType: ASGAverageCPUUtilization
           # ResourceLabel: String # When Using ALBRequestCountPerTarget
         TargetValue: 60
+  # TargetTrackingScalingPolicy2:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     PolicyType: TargetTrackingScaling # TargetTrackingScaling | StepScaling | SimpleScaling
+  #     AutoScalingGroupName: !Ref AutoScalingGroup
+  #     TargetTrackingConfiguration:
+  #       DisableScaleIn: False
+  #       PredefinedMetricSpecification:
+  #         # Available Value : ASGAverageCPUUtilization | ASGAverageNetworkIn | ASGAverageNetworkOut | ALBRequestCountPerTarget
+  #         PredefinedMetricType: ALBRequestCountPerTarget
+  #         ResourceLabel: app/skills-alb/4c5ecd57cb3c1c07/targetgroup/skills-app-tg/9441777001ee1066
+  #       TargetValue: 60
