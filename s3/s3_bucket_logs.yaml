@@ -1,0 +1,92 @@
+Parameters:
+  BucketName:
+    Type: String
+    Description: "The s3 bucket name, should be unique in all accounts"
+    Default: skills-0724-logs
+
+Resources:
+  # CMK:
+  #   Type: AWS::KMS::Key
+  #   Properties:
+  #     # Description: String
+  #     Enabled: true
+  #     EnableKeyRotation: true
+  #     KeyPolicy:
+  #       Version: 2012-10-17
+  #       Id: key-default-1
+  #       Statement:
+  #         - Sid: Enable IAM User Permissions
+  #           Effect: Allow
+  #           Principal:
+  #             AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+  #           Action: "kms:*"
+  #           Resource: "*"
+  #     # KeySpec: String
+  #     KeyUsage: ENCRYPT_DECRYPT
+  #     MultiRegion: false
+  #     PendingWindowInDays: 7
+  #     Tags:
+  #       - Key: Project
+  #         Value: !Ref Project
+  #       - Key: Owner
+  #         Value: !Ref Owner
+
+  # CMKAlias:
+  #   Type: AWS::KMS::Alias
+  #   Properties:
+  #     AliasName: !Sub "alias/s3/${BucketName}"
+  #     TargetKeyId: !Ref CMK
+
+  Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Ref BucketName
+      ObjectLockEnabled: false
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred # BucketOwnerEnforced , ObjectWriter , BucketOwnerPreferred
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Status: Enabled
+            Id: log
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: ONEZONE_IA
+                TransitionInDays: 60
+      IntelligentTieringConfigurations:
+        - Id: general
+          Status: Enabled
+          Tierings:
+            - AccessTier: ARCHIVE_ACCESS
+              Days: 90
+            - AccessTier: DEEP_ARCHIVE_ACCESS
+              Days: 180
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - BucketKeyEnabled: true
+            ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256 # AES256 , aws:kms
+      VersioningConfiguration:
+        Status: Enabled # Enabled , Suspended
+
+  SampleBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - "s3:PutObject"
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${Bucket}/*"
+            Principal:
+              AWS: "arn:aws:iam::127311923021:root"
