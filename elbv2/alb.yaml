@@ -56,27 +56,12 @@ Parameters:
     Type: List<AWS::EC2::SecurityGroup::Id>
     Description: "The security group ids for application load balancer"
 
-  Project:
-    Type: String
-    Description: "The project name for provisioned this resources"
-    Default: wsi
-
-  Owner:
-    Type: String
-    Description: "The team name for owned this resources"
-    Default: hmoon
-
 Conditions:
   EnableALBAccessLog: !Equals [!Ref ALBAccessLogEnable, "true"]
 
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
-      - Label:
-          default: "Tag configuration"
-        Parameters:
-          - Project
-          - Owner
       - Label:
           default: "ALB Configuration"
         Parameters:
@@ -119,11 +104,6 @@ Resources:
       UnhealthyThresholdCount: 2
       HealthCheckTimeoutSeconds: 5
       HealthCheckIntervalSeconds: 10
-      Tags:
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   #
   # ELBv2 - Internet-facing ALB
@@ -145,13 +125,13 @@ Resources:
           - Key: access_logs.s3.bucket
             Value: !Ref ALBAccessLogBucket
           - !Ref "AWS::NoValue"
+        - !If
+          - EnableALBAccessLog
+          - Key: access_logs.s3.prefix
+            Value: alb
+          - !Ref "AWS::NoValue"
       Subnets: !Ref SubnetIds
       SecurityGroups: !Ref SecurityGroupIds
-      Tags:
-        - Key: Project
-          Value: !Ref Project
-        - Key: Owner
-          Value: !Ref Owner
 
   #
   # ELBv2 - Listener
